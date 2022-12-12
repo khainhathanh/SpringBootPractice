@@ -5,6 +5,7 @@ import java.util.List;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.crossstore.ChangeSetPersister.NotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -70,12 +71,13 @@ public class PersonAPI {
 	}
 
 	@DeleteMapping(value = "/person")
-	public ResponseEntity<?> delete(@RequestBody List<String> ids) {
+	public ResponseEntity<?> delete(@RequestBody List<String> ids) throws NotFoundException {
 		HttpStatus stt = HttpStatus.OK;
 		Long deleteID = personService.delete(ids);
 		//truong hop khong tim thay id can xoa
 		if (deleteID == 0) {
-			stt = HttpStatus.NOT_FOUND;
+//			stt = HttpStatus.NOT_FOUND;
+			throw new NotFoundException();
 		} 
 		//truong hop tim thay nhung khong xoa duoc do loi server
 		else if (deleteID == -1) {
