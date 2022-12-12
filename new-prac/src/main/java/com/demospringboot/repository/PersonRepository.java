@@ -1,6 +1,8 @@
 package com.demospringboot.repository;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.bson.Document;
@@ -25,8 +27,7 @@ public class PersonRepository {
 	@Autowired
 	MongoDatabase database;
 
-	public List<UpdateResult> insert(List<Person> listPerson) {
-		MongoCollection<Document> mongoClient = database.getCollection("Person");
+	public List<UpdateResult> insert(List<Person> listPerson, MongoCollection<Document> mongoClient) {
 		List<UpdateResult> listResult = new ArrayList<>();
 		UpdateResult result = null;
 		for (Person itemPerson : listPerson) {
@@ -40,68 +41,45 @@ public class PersonRepository {
 			}
 			listResult.add(result);
 		}
-//		Person per = new Person();	
-//		System.out.print(result.toString());
-//		ObjectId objId = result.getUpsertedId().asObjectId().getValue();
-//		Document docPer = mongoClient.find(Filters.eq("_id", objId)).first();
-//		if (docPer != null) {
-//			per.setAge(docPer.getInteger("age"));
-//			per.setName(docPer.getString("name"));
-//			per.setSex(docPer.getString("sex"));
-//		}
 		return listResult;
 	}
 
-	public UpdateResult update(Person personUpdate, Person personFilter) {
-
-		MongoCollection<Document> mongoClient = database.getCollection("Person");
-		BasicDBObject query = new BasicDBObject();
-		if(personFilter.getId() != null) {
-			query.put("_id", personFilter.getId());
-		}
-		if(personFilter.getName() != null) {
-			query.put("name", personFilter.getName());
-		}
-		if(personFilter.getAge() != null) {
-			query.put("age", personFilter.getAge());
-		}
-		if(personFilter.getSex() != null) {
-			query.put("sex", personFilter.getSex());
-		}
-		Document docPer = mongoClient.find(query).first();
+	public UpdateResult update(Person personUpdate, Person personFilter, MongoCollection<Document> mongoClient,
+			BasicDBObject query) {
 		UpdateResult result = null;
-		if (docPer != null) {
-			Bson update = new Document("$set", new Document().append("name", personUpdate.getName())
-					.append("age", personUpdate.getAge()).append("sex", personUpdate.getSex()));
+		Bson update = new Document("$set", new Document().append("name", personUpdate.getName())
+				.append("age", personUpdate.getAge()).append("sex", personUpdate.getSex()));
+		try {
 			result = mongoClient.updateMany(query, update);
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 		return result;
 	}
 
-	public DeleteResult delete(List<ObjectId> ids) {
-		MongoCollection<Document> mongoClient = database.getCollection("Person");
+	public DeleteResult delete(MongoCollection<Document> mongoClient, BasicDBObject query) {
 		DeleteResult result = null;
-		BasicDBObject query = new BasicDBObject();
-		if(!ids.isEmpty()) {
-			query.append("_id", new BasicDBObject("$in",ids));
-		}//Filters.eq("_id", item)
-		result = mongoClient.deleteMany(query);
+		try {
+			result = mongoClient.deleteMany(query);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		return result;
 	}
-	
-	public FindIterable<Document> search(Person personFilter){
+
+	public FindIterable<Document> search(Person personFilter) {
 		MongoCollection<Document> mongoClient = database.getCollection("Person");
 		BasicDBObject query = new BasicDBObject();
-		if(personFilter.getId() != null) {
+		if (personFilter.getId() != null) {
 			query.put("_id", personFilter.getId());
 		}
-		if(personFilter.getName() != null) {
+		if (personFilter.getName() != null) {
 			query.put("name", personFilter.getName());
 		}
-		if(personFilter.getAge() != null) {
+		if (personFilter.getAge() != null) {
 			query.put("age", personFilter.getAge());
 		}
-		if(personFilter.getSex() != null) {
+		if (personFilter.getSex() != null) {
 			query.put("sex", personFilter.getSex());
 		}
 //		FindIterable<Document> list = mongoClient.find(query);

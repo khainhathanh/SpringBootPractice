@@ -5,6 +5,8 @@ import java.util.List;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,8 +25,14 @@ public class PersonAPI {
 	PersonService personService;
 
 	@PostMapping(value = "/person")
-	public List<String> createPerson(@RequestBody List<Person> listPerson) {
-		return personService.insert(listPerson);
+	public ResponseEntity<?> createPerson(@RequestBody List<Person> listPerson) {
+		HttpStatus stt = HttpStatus.OK;
+		List<String> listIDPerson = personService.insert(listPerson);
+		// truong hop list truyen vao rong
+		if (listIDPerson.isEmpty()) {
+			stt = HttpStatus.BAD_REQUEST;
+		}
+		return ResponseEntity.status(stt).body(listIDPerson);
 	}
 
 	/*
@@ -32,9 +40,10 @@ public class PersonAPI {
 	 * thuoc tinh filter neu can) client nhan lai so luong da record da update
 	 */
 	@PutMapping(value = "/person")
-	public long updatePerson(@RequestBody Person personUpdate, @RequestParam(required = false) String id,
+	public ResponseEntity<?> updatePerson(@RequestBody Person personUpdate, @RequestParam(required = false) String id,
 			@RequestParam(required = false) String name, @RequestParam(required = false) Integer age,
 			@RequestParam(required = false) String sex) {
+		HttpStatus stt = HttpStatus.OK;
 		Person personFilter = new Person();
 		if (id != null) {
 			personFilter.setId(new ObjectId());
@@ -44,19 +53,37 @@ public class PersonAPI {
 		personFilter.setName(name);
 		personFilter.setAge(age);
 		personFilter.setSex(sex);
-		return personService.update(personUpdate, personFilter);
+		Long upsertID = personService.update(personUpdate, personFilter);
+		// truong hop khong tim thay record tuong ung
+		if (upsertID == null) {
+			stt = HttpStatus.NOT_FOUND;
+		}
+		// truong hop tim thay nhung khong co chinh sua gi
+		else if (upsertID == 0) {
+			stt = HttpStatus.BAD_REQUEST;
+		}
+		// truong hop he thong loi khong the update
+		else if (upsertID == -1) {
+			stt = HttpStatus.INTERNAL_SERVER_ERROR;
+		}
+		return ResponseEntity.status(stt).body(upsertID);
 	}
 
 	@DeleteMapping(value = "/person")
-	public long delete(@RequestBody List<String> ids) {
-		return personService.delete(ids);
+	public ResponseEntity<?> delete(@RequestBody List<String> ids) {
+		HttpStatus stt = HttpStatus.OK;
+		Long deleteID = personService.delete(ids);
+		if (deleteID == 0) {
+			stt = HttpStatus.NOT_FOUND;
+		} else if (deleteID == -1) {
+			stt = HttpStatus.INTERNAL_SERVER_ERROR;
+		}
+		return ResponseEntity.status(stt).body(deleteID);
 	}
 
 	@GetMapping(value = "/person")
-	public List<Document> search(@RequestParam(required = false) String id,
-								@RequestParam(required = false) String name,
-								@RequestParam(required = false) Integer age, 
-								@RequestParam(required = false) String sex) {
+	public List<Document> search(@RequestParam(required = false) String id, @RequestParam(required = false) String name,
+			@RequestParam(required = false) Integer age, @RequestParam(required = false) String sex) {
 		Person personFilter = new Person();
 		if (id != null) {
 			personFilter.setId(new ObjectId());
