@@ -67,22 +67,7 @@ public class PersonRepository {
 		return result;
 	}
 
-	public FindIterable<Document> search(Person personFilter) {
-		MongoCollection<Document> mongoClient = database.getCollection("Person");
-		BasicDBObject query = new BasicDBObject();
-		if (personFilter.getId() != null) {
-			query.put("_id", personFilter.getId());
-		}
-		if (personFilter.getName() != null) {
-			query.put("name", personFilter.getName());
-		}
-		if (personFilter.getAge() != null) {
-			query.put("age", personFilter.getAge());
-		}
-		if (personFilter.getSex() != null) {
-			query.put("sex", personFilter.getSex());
-		}
-//		FindIterable<Document> list = mongoClient.find(query);
+	public FindIterable<Document> search(MongoCollection<Document> mongoClient , BasicDBObject query) {
 		return mongoClient.find(query);
 	}
 

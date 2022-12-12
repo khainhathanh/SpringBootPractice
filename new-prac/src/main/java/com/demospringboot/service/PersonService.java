@@ -1,6 +1,7 @@
 package com.demospringboot.service;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.bson.Document;
@@ -86,11 +87,27 @@ public class PersonService {
 	
 	public List<Document> search(Person personFilter){
 		List<Document> listDoc = new ArrayList<>();
-		FindIterable<Document> results =  personRepository.search(personFilter);
+		MongoCollection<Document> mongoClient = database.getCollection("Person");
+		BasicDBObject query = new BasicDBObject();
+		if (personFilter.getId() != null) {
+			query.put("_id",personFilter.getId());
+		}
+		if (personFilter.getName() != null) {
+			query.put("name", personFilter.getName());
+		}
+		if (personFilter.getAge() != null) {
+			query.put("age", personFilter.getAge());
+		}
+		if (personFilter.getSex() != null) {
+			query.put("sex", personFilter.getSex());
+		}
+		FindIterable<Document> results =  personRepository.search(mongoClient, query);
 		if(results != null) {
 			for(Document itemDoc : results) {
 				listDoc.add(itemDoc);
 			}
+		}else {
+			listDoc = null;
 		}
 		return listDoc;
 	}

@@ -73,18 +73,22 @@ public class PersonAPI {
 	public ResponseEntity<?> delete(@RequestBody List<String> ids) {
 		HttpStatus stt = HttpStatus.OK;
 		Long deleteID = personService.delete(ids);
+		//truong hop khong tim thay id can xoa
 		if (deleteID == 0) {
 			stt = HttpStatus.NOT_FOUND;
-		} else if (deleteID == -1) {
+		} 
+		//truong hop tim thay nhung khong xoa duoc do loi server
+		else if (deleteID == -1) {
 			stt = HttpStatus.INTERNAL_SERVER_ERROR;
 		}
 		return ResponseEntity.status(stt).body(deleteID);
 	}
 
 	@GetMapping(value = "/person")
-	public List<Document> search(@RequestParam(required = false) String id, @RequestParam(required = false) String name,
+	public ResponseEntity<?> search(@RequestParam(required = false) String id, @RequestParam(required = false) String name,
 			@RequestParam(required = false) Integer age, @RequestParam(required = false) String sex) {
 		Person personFilter = new Person();
+		HttpStatus stt = HttpStatus.OK;
 		if (id != null) {
 			personFilter.setId(new ObjectId());
 		} else {
@@ -93,6 +97,10 @@ public class PersonAPI {
 		personFilter.setName(name);
 		personFilter.setAge(age);
 		personFilter.setSex(sex);
-		return personService.search(personFilter);
+		List<Document> listDoc =  personService.search(personFilter);
+		if(listDoc.isEmpty()) {
+			stt = HttpStatus.NOT_FOUND;
+		}
+		return ResponseEntity.status(stt).body(listDoc);
 	}
 }
