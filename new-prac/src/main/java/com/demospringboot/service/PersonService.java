@@ -6,11 +6,11 @@ import java.util.List;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import com.demospringboot.entity.Pagination;
 import com.demospringboot.entity.Person;
-import com.demospringboot.exception.ErrorResponse;
+import com.demospringboot.exception.BadRequestException;
 import com.demospringboot.exception.InternalServerException;
 import com.demospringboot.repository.PersonRepository;
 import com.mongodb.BasicDBObject;
@@ -71,6 +71,7 @@ public class PersonService {
 		List<ObjectId> listObjectid = new ArrayList<>();
 		MongoCollection<Document> mongoClient = database.getCollection("Person");
 		BasicDBObject query = new BasicDBObject();
+		// check ids.isEmty nham han che vong for khi ko truyen id vao
 		if (!ids.isEmpty()) {
 			for (String itemID : ids) {
 				listObjectid.add(new ObjectId(itemID));
@@ -86,10 +87,12 @@ public class PersonService {
 		return modifiedCount;
 	}
 
-	public List<Document> search(Person personFilter) {
+	public Pagination search(Person personFilter, Integer page, Integer limit) {
+		Integer skip = 0;
 		List<Document> listDoc = new ArrayList<>();
 		MongoCollection<Document> mongoClient = database.getCollection("Person");
 		BasicDBObject query = new BasicDBObject();
+		Pagination pagination = new Pagination();
 		if (personFilter.getId() != null) {
 			query.put("_id", personFilter.getId());
 		}
@@ -102,20 +105,26 @@ public class PersonService {
 		if (personFilter.getSex() != null) {
 			query.put("sex", personFilter.getSex());
 		}
-		FindIterable<Document> results = personRepository.search(mongoClient, query);
+		if(page > 0) {
+			skip = (page-1) * limit;
+			pagination.setTotalPage(mongoClient.countDocuments());
+			pagination.setPageCurrent(page);
+		}else {
+			throw new BadRequestException("path page co van de roi em!");
+		}
+		FindIterable<Document> results = personRepository.search(mongoClient, query, skip, limit);
 		if (results != null) {
 			try {
 				for (Document itemDoc : results) {
 					listDoc.add(itemDoc);
 				}
 			} catch (Exception e) {
-				
-				throw new InternalServerException("Loi roi em yeu!");
+
+				throw new InternalServerException("Loi server roi em yeu!");
 			}
-		} else {
-			listDoc = null;
 		}
-		return listDoc;
+		pagination.setListDoc(listDoc);
+		return pagination;
 	}
 
 }

@@ -2,7 +2,6 @@ package com.demospringboot.controller;
 
 import java.util.List;
 
-import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.crossstore.ChangeSetPersister.NotFoundException;
@@ -16,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.demospringboot.entity.Pagination;
 import com.demospringboot.entity.Person;
 import com.demospringboot.service.PersonService;
 
@@ -76,8 +76,7 @@ public class PersonAPI {
 		Long deleteID = personService.delete(ids);
 		//truong hop khong tim thay id can xoa
 		if (deleteID == 0) {
-//			stt = HttpStatus.NOT_FOUND;
-			throw new NotFoundException();
+			stt = HttpStatus.NOT_FOUND;
 		} 
 		//truong hop tim thay nhung khong xoa duoc do loi server
 		else if (deleteID == -1) {
@@ -88,7 +87,8 @@ public class PersonAPI {
 
 	@GetMapping(value = "/person")
 	public ResponseEntity<?> search(@RequestParam(required = false) String id, @RequestParam(required = false) String name,
-			@RequestParam(required = false) Integer age, @RequestParam(required = false) String sex) {
+			@RequestParam(required = false) Integer age, @RequestParam(required = false) String sex,
+			@RequestParam(required = false, defaultValue = "1") Integer page, @RequestParam(required = false, defaultValue = "5") Integer limit) {
 		Person personFilter = new Person();
 		HttpStatus stt = HttpStatus.OK;
 		if (id != null) {
@@ -99,10 +99,10 @@ public class PersonAPI {
 		personFilter.setName(name);
 		personFilter.setAge(age);
 		personFilter.setSex(sex);
-		List<Document> listDoc =  personService.search(personFilter);
-		if(listDoc.isEmpty()) {
+		Pagination pagination =  personService.search(personFilter, page ,limit);
+		if(pagination.getListDoc().isEmpty()) {
 			stt = HttpStatus.NOT_FOUND;
 		}
-		return ResponseEntity.status(stt).body(listDoc);
+		return ResponseEntity.status(stt).body(pagination);
 	}
 }

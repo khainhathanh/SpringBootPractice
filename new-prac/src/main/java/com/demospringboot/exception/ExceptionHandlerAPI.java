@@ -12,5 +12,10 @@ public class ExceptionHandlerAPI {
 	public ErrorResponse internalServerException(InternalServerException ex) {
 		 return new ErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage()); 
 	}
-
+	
+	@ExceptionHandler(BadRequestException.class)
+	@ResponseStatus(value = HttpStatus.BAD_REQUEST)
+	public ErrorResponse badRequestException(BadRequestException ex) {
+		 return new ErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage()); 
+	}
 }

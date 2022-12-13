@@ -9,7 +9,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import com.demospringboot.entity.Person;
-import com.demospringboot.exception.InternalServerException;
 import com.mongodb.BasicDBObject;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
@@ -65,8 +64,8 @@ public class PersonRepository {
 		return result;
 	}
 
-	public FindIterable<Document> search(MongoCollection<Document> mongoClient , BasicDBObject query) {
-		return mongoClient.find(query);
+	public FindIterable<Document> search(MongoCollection<Document> mongoClient , BasicDBObject query, Integer skip, Integer limit) {
+		return mongoClient.find(query).limit(limit).skip(skip);
 	}
 
 }
