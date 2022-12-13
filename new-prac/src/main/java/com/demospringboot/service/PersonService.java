@@ -71,7 +71,6 @@ public class PersonService {
 		List<ObjectId> listObjectid = new ArrayList<>();
 		MongoCollection<Document> mongoClient = database.getCollection("Person");
 		BasicDBObject query = new BasicDBObject();
-		// check ids.isEmty nham han che vong for khi ko truyen id vao
 		if (!ids.isEmpty()) {
 			for (String itemID : ids) {
 				listObjectid.add(new ObjectId(itemID));
@@ -95,7 +94,7 @@ public class PersonService {
 			query.put("_id", personFilter.getId());
 		}
 		if (personFilter.getName() != null) {
-			query.put("name", new BasicDBObject("$in", "abc"));
+			query.put("name", personFilter.getName());
 		}
 		if (personFilter.getAge() != null) {
 			query.put("age", personFilter.getAge());
