@@ -1,4 +1,0 @@
-com\demospringboot\Application.class
-com\demospringboot\entity\Person.class
-com\demospringboot\controller\PersonAPI.class
-com\demospringboot\repository\PersonRepository.class
