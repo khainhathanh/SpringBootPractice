@@ -69,6 +69,7 @@ public class EmployeeService {
 		Bson group = new BasicDBObject("$group", new BasicDBObject("_id", Stream.of("$companyId","$year").collect(Collectors.toList()))
 				.append("salary", new BasicDBObject("$sum","$salary"))
 				.append("numberofEmployee", new BasicDBObject("$sum",1)));
+		Bson sort = new BasicDBObject("$sort", new BasicDBObject("_id",1));
 		Bson skip = null;
 		Bson limits = null;
 		
@@ -91,6 +92,7 @@ public class EmployeeService {
 		query.add(project);
 		query.add(match);
 		query.add(group);
+		query.add(sort);
 		
 		Future<Iterator> future = null;
 		if (skip != null && limit != null) {
@@ -169,6 +171,8 @@ public class EmployeeService {
 		Bson match = new BasicDBObject("$match", new BasicDBObject("year", year));
 		Bson group = new BasicDBObject("$group", new BasicDBObject("_id", Stream.of("$companyId","$year").collect(Collectors.toList()))
 				.append("salary", new BasicDBObject("$sum","$salary")));
+		Bson sort = new BasicDBObject("$sort", new BasicDBObject("_id",1));
+		
 		Bson skip = null;
 		Bson limits = null;
 		
@@ -190,6 +194,7 @@ public class EmployeeService {
 		query.add(project);
 		query.add(match);
 		query.add(group);
+		query.add(sort);
 		
 		Future<Iterator> future = null;
 		if (skip != null && limit != null) {
@@ -281,6 +286,7 @@ public class EmployeeService {
 											new BasicDBObject("$lte",endYear))).collect(Collectors.toList())));
 		Bson group = new BasicDBObject("$group", new BasicDBObject("_id", Stream.of("$category","$companyId").collect(Collectors.toList()))
 				.append("salary", new BasicDBObject("$sum","$salary")));
+		Bson sort = new BasicDBObject("$sort", new BasicDBObject("_id",1));
 		Bson skip = null;
 		Bson limits = null;
 		
@@ -304,6 +310,7 @@ public class EmployeeService {
 		query.add(project);
 		query.add(match);
 		query.add(group);
+		query.add(sort);
 		
 		Future<Iterator> future = null;
 		if (skip != null && limit != null) {

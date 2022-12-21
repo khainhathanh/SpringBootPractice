@@ -113,10 +113,11 @@ public class CompanyService {
 		List<Bson> query = new ArrayList<>();
 		Bson project = new BasicDBObject("$project", new BasicDBObject("_id", 0).append("code", 1).append("names", 1)
 				.append("address", 1).append("categories", 1).append("employeeNumb", 1).append("currency", 1));
+		Bson sort = new BasicDBObject("$sort", new BasicDBObject("code",1));
 		Bson skip = null;
 		Bson limits = null;
 		query.add(project);
-		
+		query.add(sort);
 		if (page != null && limit != null) {
 			if (page > 0 && limit > 0) {
 				skip = new BasicDBObject("$skip", (page - 1) * limit);

@@ -257,6 +257,7 @@ public class PersonService {
 		MongoCollection<Document> mongoClient = database.getCollection("Person");
 		Bson unwind = new BasicDBObject("$unwind", "$languages");
 		Bson group = new BasicDBObject("$group", new BasicDBObject("_id", "$languages"));
+		Bson sort = new BasicDBObject("$sort", new BasicDBObject("_id",1));
 		Bson skip = null;
 		Bson limits = null;
 
@@ -278,7 +279,7 @@ public class PersonService {
 		List<Bson> query = new ArrayList<>();
 		query.add(unwind);
 		query.add(group);
-
+		query.add(sort);
 		Future<Iterator> future = null;
 		if (skip != null && limit != null) {
 
@@ -353,6 +354,7 @@ public class PersonService {
 						Arrays.asList(new BasicDBObject("fullName", new BasicDBObject("$regex", fullName))
 								.append("month", new BasicDBObject("$gte", monthStart))
 								.append("month", new BasicDBObject("$lte", monthEnd)))));
+		Bson sort = new BasicDBObject("$sort", new BasicDBObject("_id",1));
 
 		Bson skip = null;
 		Bson limits = null;
@@ -375,7 +377,7 @@ public class PersonService {
 		List<Bson> query = new ArrayList<>();
 		query.add(project);
 		query.add(match);
-
+		query.add(sort);
 		Future<Iterator> future = null;
 		if (skip != null && limit != null) {
 
@@ -457,12 +459,13 @@ public class PersonService {
 						.append("languages", languages));
 		BasicDBObject group = new BasicDBObject("$group",
 				new BasicDBObject("_id", "$age").append("items", new BasicDBObject("$push", "$$ROOT")));
+		Bson sort = new BasicDBObject("$sort", new BasicDBObject("_id",1));
 		Bson facet = new BasicDBObject("$facet",
 				new BasicDBObject("totalrecord", Arrays.asList(new BasicDBObject("$count", "totalrecord")))
 						.append("totalperson",
 								Stream.of(match, new BasicDBObject("$count", "totalperson"))
 										.collect(Collectors.toList()))
-						.append("data", Stream.of(match, group, project1).collect(Collectors.toList())));
+						.append("data", Stream.of(match, group, project1,sort).collect(Collectors.toList())));
 
 		BasicDBObject skip = null;
 		BasicDBObject limits = null;
@@ -478,7 +481,7 @@ public class PersonService {
 								.append("totalperson",
 										Stream.of(match, new BasicDBObject("$count", "totalperson"))
 												.collect(Collectors.toList()))
-								.append("data", Stream.of(match, group, project1,skip, limits).collect(Collectors.toList())));
+								.append("data", Stream.of(match, group, project1,sort, skip, limits).collect(Collectors.toList())));
 				pagination.setPageCurrent(page);
 			} else {
 				throw new BadRequestException("path page appear a error!");
@@ -497,7 +500,7 @@ public class PersonService {
 			query.add(facet);
 		}
 		query.add(project2);
-
+		
 		Future<List<Document>> future = null;
 		if (skip != null && limit != null) {
 
@@ -568,6 +571,7 @@ public class PersonService {
 				.append("sex", sex).append("languages", languages));
 		Bson group = new BasicDBObject("$group",
 				new BasicDBObject("_id", "$age").append("items", new BasicDBObject("$push", "$$ROOT")));
+		Bson sort = new BasicDBObject("$sort", new BasicDBObject("_id",1));
 
 		Bson skip = null;
 		Bson limits = null;
@@ -591,7 +595,7 @@ public class PersonService {
 		query.add(match);
 		query.add(group);
 		query.add(project);
-
+		query.add(sort);
 		Future<Iterator> future = null;
 		if (skip != null && limit != null) {
 
