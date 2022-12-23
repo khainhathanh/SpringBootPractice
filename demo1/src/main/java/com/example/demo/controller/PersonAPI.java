@@ -2,7 +2,6 @@ package com.example.demo.controller;
 
 import java.util.List;
 
-import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -114,6 +113,7 @@ public class PersonAPI {
 	}
 
 	// 8.Viết query đếm trong collection person có bao nhiêu language
+	// 9.Viết query get toàn bộ language hiện có trong collection person (kết quả ko được trùng nhau)
 	@GetMapping(value = "/person/8")
 	public ResponseEntity<?> count(@RequestParam(value = "count") String languages,
 			@RequestParam(required = false) Integer page, @RequestParam(required = false) Integer limit) {
@@ -129,26 +129,7 @@ public class PersonAPI {
 		return ResponseEntity.status(HttpStatus.OK).body(count);
 	}
 
-	// 9.Viết query get toàn bộ language hiện có trong collection person (kết quả ko
-	// được trùng nhau)
-	@GetMapping(value = "/person/9")
-	public ResponseEntity<?> showLangs(@RequestParam(value = "show") String languages,
-			@RequestParam(required = false) Integer page,
-			@RequestParam(required = false) Integer limit) {
-		Pagination show = null;
-		if (languages.contentEquals("languages") == true) {
-			show = personService.showLangs(page, limit);
-			if (show.getListDoc() == null || show.getListDoc().isEmpty()) {
-				return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Not found record to retrive");
-			}
-		} else {
-			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Request is error!. Please try again");
-		}
-		return ResponseEntity.status(HttpStatus.OK).body(show);
-	}
-
-	// 10.Viết query get những person có họ hoặc tên chứa "Nguyễn" và ngày sinh
-	// trong khoảng tháng 2~ tháng 10
+	// 10.Viết query get những person có họ hoặc tên chứa "Nguyễn" và ngày sinh trong khoảng tháng 2~ tháng 10
 	@GetMapping(value = "/person/10")
 	public ResponseEntity<?> showPerson(@RequestParam(value = "fullName") String fullName,
 			@RequestParam(value = "monthStart") Integer monthStart, @RequestParam(value = "monthEnd") Integer monthEnd,

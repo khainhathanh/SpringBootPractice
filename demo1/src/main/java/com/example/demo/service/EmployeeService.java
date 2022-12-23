@@ -2,13 +2,7 @@ package com.example.demo.service;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -20,13 +14,9 @@ import org.springframework.stereotype.Service;
 import com.example.demo.entity.Employee;
 import com.example.demo.entity.Pagination;
 import com.example.demo.exception.BadRequestException;
-import com.example.demo.exception.ExecutionsException;
-import com.example.demo.exception.InterruptedsException;
 import com.example.demo.repository.EmployeeRepository;
 import com.mongodb.BasicDBObject;
 import com.mongodb.client.AggregateIterable;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.result.UpdateResult;
 
@@ -36,13 +26,10 @@ public class EmployeeService {
 	@Autowired
 	EmployeeRepository employeeRepository;
 
-	@Autowired
-	MongoDatabase database;
 
 	public List<String> insert(List<Employee> listEmployee) {
+		
 		List<String> listID = new ArrayList<>();
-		MongoCollection<Document> mongoClient = database.getCollection("Employee");
-
 		for (Employee itemEmployee : listEmployee) {
 			List<Bson> insert = Arrays.asList(new Document("$set",
 					new Document().append("personId", itemEmployee.getPersonId())
@@ -50,17 +37,16 @@ public class EmployeeService {
 							.append("startDate", itemEmployee.getStartDate())
 							.append("currency", itemEmployee.getCurrency())));
 			UpdateOptions options = new UpdateOptions().upsert(true);
-			UpdateResult result = employeeRepository.insert(mongoClient, itemEmployee.getId(), insert, options);
+			UpdateResult result = employeeRepository.insert(itemEmployee.getId(), insert, options);
 			listID.add(result.getUpsertedId().asObjectId().getValue().toHexString());
 		}
 		return listID;
 	}
 
-	// 14.
+	// 14.Thống kê công ty A , vào năm 2022 có bao nhiêu nhân viên vào làm, tổng mức lương phải trả cho những nhân viên đó là bao nhiêu
 	public Pagination showEmployees(Integer year, Integer page, Integer limit) {
+		
 		Pagination pagination = new Pagination();
-		MongoCollection<Document> mongoClient = database.getCollection("Employee");
-		List<Bson> query = new ArrayList<>();
 		Bson project = new BasicDBObject("$project", new BasicDBObject("_id", 0)
 				.append("companyId", 1)
 				.append("year", new BasicDBObject("$year","$startDate"))
@@ -69,15 +55,27 @@ public class EmployeeService {
 		Bson group = new BasicDBObject("$group", new BasicDBObject("_id", Stream.of("$companyId","$year").collect(Collectors.toList()))
 				.append("salary", new BasicDBObject("$sum","$salary"))
 				.append("numberofEmployee", new BasicDBObject("$sum",1)));
+		Bson count = new BasicDBObject("$count","total");
 		Bson sort = new BasicDBObject("$sort", new BasicDBObject("_id",1));
+		Bson facet = new BasicDBObject("$facet",
+				new BasicDBObject("total",Stream.of(project, match, group, count).collect(Collectors.toList()))
+				.append("data", Stream.of(project, match, group, sort).collect(Collectors.toList())));
+		Bson project2 = new BasicDBObject("$project",
+				new BasicDBObject("total",
+						new BasicDBObject("$arrayElemAt",Stream.of("$total.total",0).collect(Collectors.toList())))
+				.append("data", 1));
 		Bson skip = null;
 		Bson limits = null;
+		Bson facet2 = null;
 		
 		
 		if (page != null && limit != null) {
 			if (page > 0 && limit > 0) {
 				skip = new BasicDBObject("$skip", (page - 1) * limit);
 				limits = new BasicDBObject("$limit", limit);
+				facet2 = new BasicDBObject("$facet",
+						new BasicDBObject("total",Stream.of(project, match, group, count).collect(Collectors.toList()))
+						.append("data", Stream.of(project,match, group, sort, skip, limits).collect(Collectors.toList())));
 				pagination.setPageCurrent(page);
 			} else {
 				throw new BadRequestException("path page appear a error!");
@@ -89,61 +87,22 @@ public class EmployeeService {
 			pagination.setTotalPage(null);
 		}
 		
-		query.add(project);
-		query.add(match);
-		query.add(group);
-		query.add(sort);
-		
-		Future<Iterator> future = null;
-		if (skip != null && limit != null) {
-
-			List<Bson> listTotal = new ArrayList<>();
-			listTotal.add(project);
-			listTotal.add(match);
-			listTotal.add(group);
-
-			ExecutorService executor = Executors.newCachedThreadPool();
-			future = executor.submit(new Callable<Iterator>() {
-
-				@Override
-				public Iterator call() throws Exception {
-					AggregateIterable<Document> record = employeeRepository.showDB(mongoClient, listTotal);
-					Iterator iteratorRecord = record.iterator();
-					return iteratorRecord;
-				}
-
-			});
-			executor.shutdown();
-
-			query.add(skip);
-			query.add(limits);
+		List<Bson> query = new ArrayList<>();
+		if(facet2 != null) {
+			query.add(facet2);
+		}else {
+			query.add(facet);
 		}
+		query.add(project2);
 		
-		AggregateIterable<Document> showEmployees = employeeRepository.showDB(mongoClient, query);
-
+		AggregateIterable<Document> showEmployees = employeeRepository.showDB(query);
+		Document doc = showEmployees.first();
 		List<Document> listDoc = null;
-		if(showEmployees.first() != null) {
-			Iterator iterator = showEmployees.iterator();
-			listDoc = new ArrayList<>();
-			while (iterator.hasNext()) {
-				listDoc.add((Document) iterator.next());
-			}
+		if(doc != null) {
+			listDoc = doc.getList("data", Document.class);
 			pagination.setListDoc(listDoc);
 			if (limit != null) {
-				Integer totalRecord = 0;
-
-				try {
-					Iterator iteratorTotalRecord = future.get();
-					while (iteratorTotalRecord.hasNext()) {
-						iteratorTotalRecord.next();
-						totalRecord++;
-					}
-				} catch (InterruptedException e) {
-					throw new InterruptedsException("a thread of a task is interrupted");
-				} catch (ExecutionException e) {
-					throw new ExecutionsException("Attempting to retrieve the result of a task that aborted");
-				}
-
+				Integer totalRecord = doc.getInteger("total");
 				if (totalRecord <= limit) {
 					totalRecord = limit;
 					pagination.setTotalPage(totalRecord / limit);
@@ -159,11 +118,10 @@ public class EmployeeService {
 		return pagination;
 	}
 
-	// 15.
+	// 15.Thống kê tổng số tiền các công ty phải trả cho những người đăng ký vào làm trong năm 2022
 	public Pagination showEmpl(Integer year, Integer page, Integer limit) {
+		
 		Pagination pagination = new Pagination();
-		MongoCollection<Document> mongoClient = database.getCollection("Employee");
-		List<Bson> query = new ArrayList<>();
 		Bson project = new BasicDBObject("$project", new BasicDBObject("_id", 0)
 				.append("companyId", 1)
 				.append("year", new BasicDBObject("$year","$startDate"))
@@ -173,13 +131,25 @@ public class EmployeeService {
 				.append("salary", new BasicDBObject("$sum","$salary")));
 		Bson sort = new BasicDBObject("$sort", new BasicDBObject("_id",1));
 		
+		Bson count = new BasicDBObject("$count","total");
+		Bson facet = new BasicDBObject("$facet",
+				new BasicDBObject("total",Stream.of(project, match, group, count).collect(Collectors.toList()))
+				.append("data", Stream.of(project, match, group, sort).collect(Collectors.toList())));
+		Bson project2 = new BasicDBObject("$project",
+				new BasicDBObject("total",
+						new BasicDBObject("$arrayElemAt",Stream.of("$total.total",0).collect(Collectors.toList())))
+				.append("data", 1));
 		Bson skip = null;
 		Bson limits = null;
+		Bson facet2 = null;
 		
 		if (page != null && limit != null) {
 			if (page > 0 && limit > 0) {
 				skip = new BasicDBObject("$skip", (page - 1) * limit);
 				limits = new BasicDBObject("$limit", limit);
+				facet2 = new BasicDBObject("$facet",
+						new BasicDBObject("total",Stream.of(project, match, group, count).collect(Collectors.toList()))
+						.append("data", Stream.of(project, match, group, sort, skip, limits).collect(Collectors.toList())));
 				pagination.setPageCurrent(page);
 			} else {
 				throw new BadRequestException("path page appear a error!");
@@ -191,62 +161,22 @@ public class EmployeeService {
 			pagination.setTotalPage(null);
 		}
 		
-		query.add(project);
-		query.add(match);
-		query.add(group);
-		query.add(sort);
-		
-		Future<Iterator> future = null;
-		if (skip != null && limit != null) {
-
-			List<Bson> listTotal = new ArrayList<>();
-			listTotal.add(project);
-			listTotal.add(match);
-			listTotal.add(group);
-
-			ExecutorService executor = Executors.newCachedThreadPool();
-			future = executor.submit(new Callable<Iterator>() {
-
-				@Override
-				public Iterator call() throws Exception {
-					AggregateIterable<Document> record = employeeRepository.showDB(mongoClient, listTotal);
-					Iterator iteratorRecord = record.iterator();
-					return iteratorRecord;
-				}
-
-			});
-			executor.shutdown();
-
-			query.add(skip);
-			query.add(limits);
+		List<Bson> query = new ArrayList<>();
+		if(facet2 != null) {
+			query.add(facet2);
+		}else {
+			query.add(facet);
 		}
+		query.add(project2);
 		
-		AggregateIterable<Document> showEmpl = employeeRepository.showDB(mongoClient, query);
-		
+		AggregateIterable<Document> showEmpl = employeeRepository.showDB(query);
+		Document doc = showEmpl.first();
 		List<Document> listDoc = null;
-		if(showEmpl.first() != null) {
-			Iterator iterator = showEmpl.iterator();
-			listDoc = new ArrayList<>();
-			while (iterator.hasNext()) {
-				listDoc.add((Document) iterator.next());
-			}
-			
+		if(doc != null) {
+			listDoc = doc.getList("data", Document.class);
 			pagination.setListDoc(listDoc);
 			if (limit != null) {
-				Integer totalRecord = 0;
-
-				try {
-					Iterator iteratorTotalRecord = future.get();
-					while (iteratorTotalRecord.hasNext()) {
-						iteratorTotalRecord.next();
-						totalRecord++;
-					}
-				} catch (InterruptedException e) {
-					throw new InterruptedsException("a thread of a task is interrupted");
-				} catch (ExecutionException e) {
-					throw new ExecutionsException("Attempting to retrieve the result of a task that aborted");
-				}
-
+				Integer totalRecord = doc.getInteger("total");
 				if (totalRecord <= limit) {
 					totalRecord = limit;
 					pagination.setTotalPage(totalRecord / limit);
@@ -262,11 +192,9 @@ public class EmployeeService {
 		return pagination;
 	}
 
-	// 16.
+	// 16.Thống kê tổng số tiền các công ty IT phải trả cho những người đăng ký vào làm trong các năm từ 2020 ~ 2022
 	public Pagination showEmployee(String category, Integer startYear, Integer endYear, Integer page, Integer limit) {
 		Pagination pagination = new Pagination();
-		MongoCollection<Document> mongoClient = database.getCollection("Employee");
-		List<Bson> query = new ArrayList<>();
 		Bson lookup = new BasicDBObject("$lookup", new BasicDBObject("from", "Company")
 						.append("localField", "companyId")
 						.append("foreignField", "code")
@@ -287,13 +215,25 @@ public class EmployeeService {
 		Bson group = new BasicDBObject("$group", new BasicDBObject("_id", Stream.of("$category","$companyId").collect(Collectors.toList()))
 				.append("salary", new BasicDBObject("$sum","$salary")));
 		Bson sort = new BasicDBObject("$sort", new BasicDBObject("_id",1));
+		Bson count = new BasicDBObject("$count","total");
+		Bson facet = new BasicDBObject("$facet",
+				new BasicDBObject("total",Stream.of(lookup, unwind, project, match, group, count).collect(Collectors.toList()))
+				.append("data", Stream.of(lookup, unwind, project, match, group,sort).collect(Collectors.toList())));
+		Bson project2 = new BasicDBObject("$project",
+				new BasicDBObject("total",
+						new BasicDBObject("$arrayElemAt",Stream.of("$total.total",0).collect(Collectors.toList())))
+				.append("data", 1));
 		Bson skip = null;
 		Bson limits = null;
+		Bson facet2 = null;
 		
 		if (page != null && limit != null) {
 			if (page > 0 && limit > 0) {
 				skip = new BasicDBObject("$skip", (page - 1) * limit);
 				limits = new BasicDBObject("$limit", limit);
+				facet2 = new BasicDBObject("$facet",
+						new BasicDBObject("total",Stream.of(lookup, unwind, project, match, group, count).collect(Collectors.toList()))
+						.append("data", Stream.of(lookup, unwind, project, match, group, sort, skip, limits).collect(Collectors.toList())));
 				pagination.setPageCurrent(page);
 			} else {
 				throw new BadRequestException("path page appear a error!");
@@ -305,64 +245,21 @@ public class EmployeeService {
 			pagination.setTotalPage(null);
 		}
 		
-		query.add(lookup);
-		query.add(unwind);
-		query.add(project);
-		query.add(match);
-		query.add(group);
-		query.add(sort);
-		
-		Future<Iterator> future = null;
-		if (skip != null && limit != null) {
-
-			List<Bson> listTotal = new ArrayList<>();
-			listTotal.add(lookup);
-			listTotal.add(unwind);
-			listTotal.add(project);
-			listTotal.add(match);
-			listTotal.add(group);
-
-			ExecutorService executor = Executors.newCachedThreadPool();
-			future = executor.submit(new Callable<Iterator>() {
-
-				@Override
-				public Iterator call() throws Exception {
-					AggregateIterable<Document> record = employeeRepository.showDB(mongoClient, listTotal);
-					Iterator iteratorRecord = record.iterator();
-					return iteratorRecord;
-				}
-
-			});
-			executor.shutdown();
-
-			query.add(skip);
-			query.add(limits);
+		List<Bson> query = new ArrayList<>();
+		if(facet2 != null) {
+			query.add(facet2);
+		}else {
+			query.add(facet);
 		}
-		
-		AggregateIterable<Document> listEmployee = employeeRepository.showDB(mongoClient, query);
+		query.add(project2);
+		AggregateIterable<Document> listEmployee = employeeRepository.showDB(query);
+		Document doc = listEmployee.first();
 		List<Document> listDoc = null;
-		if(listEmployee.first() != null) {
-			Iterator iterator = listEmployee.iterator();
-			listDoc = new ArrayList<>();
-			while (iterator.hasNext()) {
-				listDoc.add((Document) iterator.next());
-			}
-			
+		if(doc != null) {
+			listDoc = doc.getList("data", Document.class);
 			pagination.setListDoc(listDoc);
 			if (limit != null) {
-				Integer totalRecord = 0;
-
-				try {
-					Iterator iteratorTotalRecord = future.get();
-					while (iteratorTotalRecord.hasNext()) {
-						iteratorTotalRecord.next();
-						totalRecord++;
-					}
-				} catch (InterruptedException e) {
-					throw new InterruptedsException("a thread of a task is interrupted");
-				} catch (ExecutionException e) {
-					throw new ExecutionsException("Attempting to retrieve the result of a task that aborted");
-				}
+				Integer totalRecord = doc.getInteger("total");
 
 				if (totalRecord <= limit) {
 					totalRecord = limit;

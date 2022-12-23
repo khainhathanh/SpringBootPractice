@@ -5,20 +5,28 @@ import java.util.List;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import com.example.demo.exception.InternalServerException;
 import com.mongodb.BasicDBObject;
 import com.mongodb.client.AggregateIterable;
+import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.result.UpdateResult;
 
 @Repository
 public class CompanyRepository {
-	public UpdateResult insert(MongoCollection<Document> mongoClient, ObjectId id, List<Bson> insert,
+	
+	@Autowired
+	MongoDatabase database;
+	
+	public UpdateResult insert(ObjectId id, List<Bson> insert,
 			UpdateOptions options) {
+		MongoCollection<Document> mongoClient = database.getCollection("Company");
 		UpdateResult result = null;
 		try {
 			result = mongoClient.updateOne(Filters.lt("_id", id), insert, options);
@@ -28,7 +36,8 @@ public class CompanyRepository {
 		return result;
 	}
 	
-	public UpdateResult addElement(MongoCollection<Document> mongoClient, Bson update, BasicDBObject query , UpdateOptions options) {
+	public UpdateResult addElement(Bson update, BasicDBObject query , UpdateOptions options) {
+		MongoCollection<Document> mongoClient = database.getCollection("Company");
 		UpdateResult result = null;
 		try {
 			if(options != null) {
@@ -41,8 +50,12 @@ public class CompanyRepository {
 		}
 		return result;
 	}
-	
-	public AggregateIterable<Document> showDB(MongoCollection<Document> mongoClient, List<Bson> query) {
+	public FindIterable<Document> search(BasicDBObject query) {
+		MongoCollection<Document> mongoClient = database.getCollection("Company");
+		return mongoClient.find(query);
+	}
+	public AggregateIterable<Document> showDB(List<Bson> query) {
+		MongoCollection<Document> mongoClient = database.getCollection("Company");
 		AggregateIterable<Document> result = null;
 		try {
 			result = mongoClient.aggregate(query);
