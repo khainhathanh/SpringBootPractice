@@ -2,13 +2,14 @@ package com.example.demo.repository;
 
 import java.util.List;
 
+import javax.print.Doc;
+
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
-import com.example.demo.exception.InternalServerException;
 import com.mongodb.BasicDBObject;
 import com.mongodb.client.AggregateIterable;
 import com.mongodb.client.FindIterable;
@@ -20,48 +21,32 @@ import com.mongodb.client.result.UpdateResult;
 
 @Repository
 public class CompanyRepository {
-	
+
 	@Autowired
 	MongoDatabase database;
-	
-	public UpdateResult insert(ObjectId id, List<Bson> insert,
-			UpdateOptions options) {
+
+	public UpdateResult insert(ObjectId id, List<Bson> insert) {
 		MongoCollection<Document> mongoClient = database.getCollection("Company");
-		UpdateResult result = null;
-		try {
-			result = mongoClient.updateOne(Filters.lt("_id", id), insert, options);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+		UpdateOptions options = new UpdateOptions().upsert(true);
+		UpdateResult result = mongoClient.updateOne(Filters.lt("_id", id), insert, options);
 		return result;
 	}
-	
-	public UpdateResult addElement(Bson update, BasicDBObject query , UpdateOptions options) {
+
+	public UpdateResult addElement(Bson update, BasicDBObject query) {
 		MongoCollection<Document> mongoClient = database.getCollection("Company");
-		UpdateResult result = null;
-		try {
-			if(options != null) {
-				result = mongoClient.updateOne(query, update , options);
-			}else {
-				result = mongoClient.updateOne(query, update);
-			}
-		} catch (Exception e) {
-			throw new InternalServerException("Can't update. System is error!");
-		}
+		UpdateResult result = mongoClient.updateOne(query, update);
 		return result;
 	}
-	public FindIterable<Document> search(BasicDBObject query) {
+
+	public Document search(BasicDBObject query) {
 		MongoCollection<Document> mongoClient = database.getCollection("Company");
-		return mongoClient.find(query);
+		Document result = mongoClient.find(query).first();
+		return result;
 	}
-	public AggregateIterable<Document> showDB(List<Bson> query) {
+
+	public Document showDB(List<Bson> query) {
 		MongoCollection<Document> mongoClient = database.getCollection("Company");
-		AggregateIterable<Document> result = null;
-		try {
-			result = mongoClient.aggregate(query);
-		} catch (Exception e) {
-			throw new InternalServerException("Can't retrive. System is error!");
-		}
+		Document result = mongoClient.aggregate(query).first();
 		return result;
 	}
 }

@@ -25,13 +25,13 @@ public class PersonAPI {
 
 	@PostMapping(value = "/person")
 	public ResponseEntity<?> createPerson(@RequestBody List<Person> listPerson) {
-		HttpStatus stt = HttpStatus.OK;
-		List<String> listIDPerson = personService.insert(listPerson);
-		// truong hop list truyen vao rong
-		if (listIDPerson.isEmpty()) {
-			stt = HttpStatus.BAD_REQUEST;
+		List<String> listIDPerson = null;
+		if (!listPerson.isEmpty()) {
+			listIDPerson = personService.insert(listPerson);
+		} else {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("request error .Please check again!");
 		}
-		return ResponseEntity.status(stt).body(listIDPerson);
+		return ResponseEntity.status(HttpStatus.OK).body(listIDPerson);
 	}
 
 	// 2.Viết query thêm 1 verhicle mới trong bảng person
@@ -113,12 +113,14 @@ public class PersonAPI {
 	}
 
 	// 8.Viết query đếm trong collection person có bao nhiêu language
-	// 9.Viết query get toàn bộ language hiện có trong collection person (kết quả ko được trùng nhau)
+	// 9.Viết query get toàn bộ language hiện có trong collection person (kết quả ko
+	// được trùng nhau)
 	@GetMapping(value = "/person/8")
 	public ResponseEntity<?> count(@RequestParam(value = "count") String languages,
-			@RequestParam(required = false) Integer page, @RequestParam(required = false) Integer limit) {
+			@RequestParam(required = false, defaultValue = "1") Integer page,
+			@RequestParam(required = false, defaultValue = "5") Integer limit) {
 		Pagination count = null;
-		if (languages.contentEquals("languages") == true ) {
+		if (languages.contentEquals("languages") == true) {
 			count = personService.countLang(page, limit);
 			if (count.getListDoc() == null || count.getListDoc().isEmpty()) {
 				return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Not found record to retrive");
@@ -129,15 +131,21 @@ public class PersonAPI {
 		return ResponseEntity.status(HttpStatus.OK).body(count);
 	}
 
-	// 10.Viết query get những person có họ hoặc tên chứa "Nguyễn" và ngày sinh trong khoảng tháng 2~ tháng 10
+	// 10.Viết query get những person có họ hoặc tên chứa "Nguyễn" và ngày sinh
+	// trong khoảng tháng 2~ tháng 10
 	@GetMapping(value = "/person/10")
 	public ResponseEntity<?> showPerson(@RequestParam(value = "fullName") String fullName,
 			@RequestParam(value = "monthStart") Integer monthStart, @RequestParam(value = "monthEnd") Integer monthEnd,
-			@RequestParam(required = false) Integer page,
-			@RequestParam(required = false) Integer limit) {
-		Pagination showPer = personService.showPerson(fullName, monthStart, monthEnd, page, limit);
-		if (showPer.getListDoc() == null || showPer.getListDoc().isEmpty()) {
-			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Not found record to retrive");
+			@RequestParam(required = false, defaultValue = "1") Integer page,
+			@RequestParam(required = false, defaultValue = "5") Integer limit) {
+		Pagination showPer = null;
+		if (monthStart > 0 && monthStart < 13 && monthEnd > 0 && monthEnd < 13) {
+			showPer = personService.showPerson(fullName, monthStart, monthEnd, page, limit);
+			if (showPer.getListDoc() == null || showPer.getListDoc().isEmpty()) {
+				return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Not found record to retrive");
+			}
+		}else {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Request is error!. Please try again");
 		}
 
 		return ResponseEntity.status(HttpStatus.OK).body(showPer);
@@ -153,8 +161,8 @@ public class PersonAPI {
 	@GetMapping(value = "/person/11")
 	public ResponseEntity<?> showPerson(@RequestParam(value = "mailRegex") String mailRegex,
 			@RequestParam(value = "sex") String sex, @RequestParam(value = "languages") String languages,
-			@RequestParam(required = false) Integer page,
-			@RequestParam(required = false) Integer limit) {
+			@RequestParam(required = false, defaultValue = "1") Integer page,
+			@RequestParam(required = false, defaultValue = "5") Integer limit) {
 		Pagination showPer = personService.showPerson11(mailRegex, sex, languages, page, limit);
 		if (showPer.getListDoc() == null || showPer.getListDoc().isEmpty()) {
 			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Not found record to retrive");
@@ -166,12 +174,13 @@ public class PersonAPI {
 	@GetMapping(value = "/person/12")
 	public ResponseEntity<?> showPerson12(@RequestParam(value = "mailRegex") String mailRegex,
 			@RequestParam(value = "sex") String sex, @RequestParam(value = "languages") String languages,
-			@RequestParam(required = false) Integer page,
-			@RequestParam(required = false) Integer limit) {
+			@RequestParam(required = false, defaultValue = "1") Integer page,
+			@RequestParam(required = false, defaultValue = "5") Integer limit) {
 		Pagination showPer = personService.showPerson12(mailRegex, sex, languages, page, limit);
 		if (showPer.getListDoc() == null || showPer.getListDoc().isEmpty()) {
 			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Not found record to retrive");
 		}
+
 		return ResponseEntity.status(HttpStatus.OK).body(showPer);
 	}
 

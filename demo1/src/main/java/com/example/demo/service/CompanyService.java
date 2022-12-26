@@ -2,13 +2,7 @@ package com.example.demo.service;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -21,15 +15,10 @@ import org.springframework.stereotype.Service;
 import com.example.demo.entity.Company;
 import com.example.demo.entity.NameCompany;
 import com.example.demo.entity.Pagination;
-import com.example.demo.exception.BadRequestException;
-import com.example.demo.exception.ExecutionsException;
-import com.example.demo.exception.InterruptedsException;
+import com.example.demo.exception.InternalServerException;
 import com.example.demo.repository.CompanyRepository;
 import com.mongodb.BasicDBObject;
 import com.mongodb.client.AggregateIterable;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.result.UpdateResult;
 
 @Service
@@ -49,8 +38,12 @@ public class CompanyService {
 					.append("code", itemCompany.getCode()).append("address", itemCompany.getAddress())
 					.append("employeeNumb", itemCompany.getEmployeeNumb())
 					.append("categories", itemCompany.getCategories()).append("currency", itemCompany.getCurrency())));
-			UpdateOptions options = new UpdateOptions().upsert(true);
-			UpdateResult result = companyRepository.insert(itemCompany.getId(), insert, options);
+			UpdateResult result = null;
+			try {
+				result = companyRepository.insert(itemCompany.getId(), insert);
+			} catch (Exception e) {
+				throw new InternalServerException("Can't insert! Systems is error");
+			}
 			listID.add(result.getUpsertedId().asObjectId().getValue().toHexString());
 		}
 		return listID;
@@ -62,7 +55,7 @@ public class CompanyService {
 		Long modifiedCount = new Long(-1);
 		boolean matchCount = false;
 		Bson update = null;
-		Document docPer = companyRepository.search(query).first();
+		Document docPer = companyRepository.search(query);
 		if (docPer != null) {
 
 			List<Document> listNames = docPer.getList("names", Document.class);
@@ -78,7 +71,12 @@ public class CompanyService {
 			if (matchCount == false) {
 				update = new Document("$addToSet", new Document("names",
 						new BasicDBObject("lang", names.getLang()).append("name", names.getName())));
-				UpdateResult result = companyRepository.addElement(update, query, null);
+				UpdateResult result = null;
+				try {
+					result = companyRepository.addElement(update, query);
+				} catch (Exception e) {
+					throw new InternalServerException("Can't update. System is error!");
+				}
 				if (result != null) {
 					modifiedCount = result.getModifiedCount();
 				}
@@ -91,10 +89,15 @@ public class CompanyService {
 	public Long updateName(String lang, ObjectId id) {
 		BasicDBObject query = new BasicDBObject("_id", id);
 		Long modifiedCount = new Long(-1);
-		Document docPer = companyRepository.search(query).first();
+		Document docPer = companyRepository.search(query);
 		if (docPer != null) {
 			Bson update = new Document("$pull", new Document("names", new BasicDBObject("lang", lang)));
-			UpdateResult result = companyRepository.addElement(update, query, null);
+			UpdateResult result = null;
+			try {
+				result = companyRepository.addElement(update, query);
+			} catch (Exception e) {
+				throw new InternalServerException("Can't update. System is error!");
+			}
 			if (result != null) {
 				modifiedCount = result.getModifiedCount();
 			}
@@ -107,70 +110,49 @@ public class CompanyService {
 		Pagination pagination = new Pagination();
 		Bson project = new BasicDBObject("$project", new BasicDBObject("_id", 0).append("code", 1).append("names", 1)
 				.append("address", 1).append("categories", 1).append("employeeNumb", 1).append("currency", 1));
-		Bson sort = new BasicDBObject("$sort", new BasicDBObject("code",1));
-		Bson count = new BasicDBObject("$count","total");
-		Bson facet = new BasicDBObject("$facet",
-				new BasicDBObject("total",Stream.of(project, count).collect(Collectors.toList()))
-				.append("data", Stream.of(project,sort).collect(Collectors.toList())));
+		Bson sort = new BasicDBObject("$sort", new BasicDBObject("code", 1));
+		Bson count = new BasicDBObject("$count", "total");
 		Bson project2 = new BasicDBObject("$project",
 				new BasicDBObject("total",
-						new BasicDBObject("$arrayElemAt",Stream.of("$total.total",0).collect(Collectors.toList())))
-				.append("data", 1));
-		Bson skip = null;
-		Bson limits = null;
-		Bson facet2 = null;
-		
-		if (page != null && limit != null) {
-			if (page > 0 && limit > 0) {
-				skip = new BasicDBObject("$skip", (page - 1) * limit);
-				limits = new BasicDBObject("$limit", limit);
-				facet2 = new BasicDBObject("$facet",
-						new BasicDBObject("total",Stream.of(project, count).collect(Collectors.toList()))
-						.append("data", Stream.of(project, sort, skip, limits).collect(Collectors.toList())));
-				pagination.setPageCurrent(page);
-			} else {
-				throw new BadRequestException("path page appear a error!");
-			}
-		} else if ((page != null && limit == null) || (limit != null & page == null)) {
-			throw new BadRequestException("path page appear a error!");
-		} else {
-			pagination.setPageCurrent(null);
-			pagination.setTotalPage(null);
-		}
-		
-		List<Bson> query = new ArrayList<>();
-		if(facet2 != null) {
-			query.add(facet2);
-		}else {
-			query.add(facet);
-		}
-		query.add(project2);
-		
-		
-		
-		
-		AggregateIterable<Document> showCompany = companyRepository.showDB(query);
-		Document doc = showCompany.first();
-		List<Document> listDoc = null;
-		if(showCompany.first() != null) {
-			listDoc = doc.getList("data", Document.class);			
-			pagination.setListDoc(listDoc);
-			if (limit != null) {
-				Integer totalRecord = doc.getInteger("total");;
+						new BasicDBObject("$arrayElemAt", Stream.of("$total.total", 0).collect(Collectors.toList())))
+								.append("data", 1));
+		Bson skip = new BasicDBObject("$skip", (page - 1) * limit);
+		Bson limits = new BasicDBObject("$limit", limit);
+		Bson facet = new BasicDBObject("$facet",
+				new BasicDBObject("total", Stream.of(project, count).collect(Collectors.toList())).append("data",
+						Stream.of(project, sort, skip, limits).collect(Collectors.toList())));
+		pagination.setPageCurrent(page);
 
-				if (totalRecord <= limit) {
-					totalRecord = limit;
-					pagination.setTotalPage(totalRecord / limit);
+		List<Bson> query = new ArrayList<>();
+		query.add(facet);
+		query.add(project2);
+		Document doc = null;
+		try {
+			doc = companyRepository.showDB(query);
+		} catch (Exception e) {
+			throw new InternalServerException("Can't retrive. System is error!");
+		}
+		List<Document> listDoc = null;
+		if (doc != null) {
+			listDoc = doc.getList("data", Document.class);
+			pagination.setListDoc(listDoc);
+
+			Integer totalRecord = doc.getInteger("total");
+			;
+
+			if (totalRecord <= limit) {
+				totalRecord = limit;
+				pagination.setTotalPage(totalRecord / limit);
+			} else {
+				if (totalRecord % limit > 0) {
+					pagination.setTotalPage((totalRecord / limit) + 1);
 				} else {
-					if (totalRecord % limit > 0) {
-						pagination.setTotalPage((totalRecord / limit) + 1);
-					} else {
-						pagination.setTotalPage(totalRecord / limit);
-					}
+					pagination.setTotalPage(totalRecord / limit);
 				}
 			}
+
 		}
-		
+
 		return pagination;
 	}
 

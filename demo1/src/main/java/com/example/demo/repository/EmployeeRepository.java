@@ -8,8 +8,6 @@ import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
-import com.example.demo.exception.InternalServerException;
-import com.mongodb.client.AggregateIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
@@ -22,26 +20,16 @@ public class EmployeeRepository {
 	@Autowired
 	MongoDatabase database;
 	
-	public UpdateResult insert(ObjectId id, List<Bson> insert,
-			UpdateOptions options) {
+	public UpdateResult insert(ObjectId id, List<Bson> insert) {
 		MongoCollection<Document> mongoClient = database.getCollection("Employee");
-		UpdateResult result = null;
-		try {
-			result = mongoClient.updateOne(Filters.lt("_id", id), insert, options);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+		UpdateOptions options = new UpdateOptions().upsert(true);
+		UpdateResult result = mongoClient.updateOne(Filters.lt("_id", id), insert, options);
 		return result;
 	}
 	
-	public AggregateIterable<Document> showDB(List<Bson> query) {
+	public Document showDB(List<Bson> query) {
 		MongoCollection<Document> mongoClient = database.getCollection("Employee");
-		AggregateIterable<Document> result = null;
-		try {
-			result = mongoClient.aggregate(query);
-		} catch (Exception e) {
-			throw new InternalServerException("Error retrive!");
-		}
+		Document result = mongoClient.aggregate(query).first();
 		return result;
 	}
 }
