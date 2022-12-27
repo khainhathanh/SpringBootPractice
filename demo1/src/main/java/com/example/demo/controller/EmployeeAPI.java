@@ -23,13 +23,13 @@ public class EmployeeAPI {
 
 	@PostMapping(value = "/employee")
 	public ResponseEntity<?> createEmployee(@RequestBody List<Employee> listEmployee) {
-		List<String> listIDPerson = null;
+		Integer countInsert = null;
 		if (!listEmployee.isEmpty()) {
-			listIDPerson = employeeService.insert(listEmployee);
+			countInsert = employeeService.insert(listEmployee);
 		} else {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("request error.Please check again!");
 		}
-		return ResponseEntity.status(HttpStatus.OK).body(listIDPerson);
+		return ResponseEntity.status(HttpStatus.OK).body(countInsert);
 	}
 
 	// 14.

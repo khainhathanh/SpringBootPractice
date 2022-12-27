@@ -27,13 +27,13 @@ public class CompanyAPI {
 	// nhuoc diem chua xu ly getName() insert multilply names
 	@PostMapping(value = "/company")
 	public ResponseEntity<?> createCompany(@RequestBody List<Company> listCompany) {
-		List<String> listIDPerson = null;
+		Integer countInsert = null;
 		if (!listCompany.isEmpty()) {
-			listIDPerson = companyService.insert(listCompany);
+			countInsert = companyService.insert(listCompany);
 		} else {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("request error. Please check again!");
 		}
-		return ResponseEntity.status(HttpStatus.OK).body(listIDPerson);
+		return ResponseEntity.status(HttpStatus.OK).body(countInsert);
 	}
 
 	// 6. Viết query update 1 company, thêm 1 name mới theo ngôn ngữ trong names

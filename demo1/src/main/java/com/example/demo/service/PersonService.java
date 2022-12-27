@@ -1,13 +1,10 @@
 package com.example.demo.service;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
+import org.apache.log4j.Logger;
 import org.bson.Document;
-import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -17,115 +14,118 @@ import com.example.demo.entity.Person;
 import com.example.demo.entity.Verhicles;
 import com.example.demo.exception.InternalServerException;
 import com.example.demo.repository.PersonRepository;
-import com.mongodb.BasicDBObject;
-import com.mongodb.client.AggregateIterable;
+import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.client.result.UpdateResult;
 
 @Service
 public class PersonService {
-
+	private static Logger logger = Logger.getLogger(PersonService.class);
+	
 	@Autowired
 	PersonRepository personRepository;
 
-	public List<String> insert(List<Person> listPerson) {
-		List<String> listID = new ArrayList<>();
-		for (Person itemPerson : listPerson) {
-			UpdateResult result = null;
-			List<Bson> insert = Arrays.asList(new Document("$set",
-					new Document().append("firstName", itemPerson.getFirstName())
-							.append("lastName", itemPerson.getLastName()).append("age", itemPerson.getAge())
-							.append("sex", itemPerson.getSex()).append("languages", itemPerson.getLanguages())
-							.append("verhicles",
-									Arrays.asList(new Document("type", itemPerson.getVerhicles().get(0).getType())
-											.append("status", itemPerson.getVerhicles().get(0).getStatus())))
-							.append("dateofbirth", itemPerson.getDateofbirth()).append("email", itemPerson.getEmail())
-							.append("phone", itemPerson.getPhone()).append("fullName",
-									new Document("$concat",
-											Stream.of(itemPerson.getFirstName(), " ", itemPerson.getLastName())
-													.collect(Collectors.toList())))));
+	public Integer insert(List<Person> listPerson) {
+		logger.info("START : Lesson 1");
+			BulkWriteResult result = null;
+			logger.info("START: Thực thi insert");
 			try {
-				result = personRepository.insert(itemPerson.getId(), insert);
+				result = personRepository.insert(listPerson);
 			} catch (Exception e) {
+				logger.error(e);
 				throw new InternalServerException("Can't insert! Systems is error");
 			}
-			listID.add(result.getUpsertedId().asObjectId().getValue().toHexString());
-		}
-		return listID;
+			logger.info("END: Thực thi insert");
+			Integer count = result.getInsertedCount();
+		logger.info("END : Lesson 1");
+		return count;
 	}
 
 	// 2.Viết query thêm 1 verhicle mới trong bảng person
 	public Long addElement(Verhicles verhicles, ObjectId id) {
-
-		BasicDBObject query = new BasicDBObject("_id", id);
+		logger.info("START : Lesson 2");
 		Long modifiedCount = new Long(-1);
 		boolean matchCount = false;// 1 <=> list trung type can update
-		Document docPer = personRepository.search(query);
+		logger.info("START : Check ID");
+		Document docPer = personRepository.search(id);
 		if (docPer != null) {
-			Bson update = null;
+			logger.info("END : Check ID");
 			List<Document> listVerhicles = docPer.getList("verhicles", Document.class);
 			// duyet tat ca field List<verhicles> , neu ton tai thuoc tinh type cung loai se
 			// bo qua
+			logger.info("START : Check Verhicle tồn tại");
 			for (Document item : listVerhicles) {
 				if (item.getString("type").contentEquals(verhicles.getType())) {
 					matchCount = true;
 					break;
 				}
 			}
+			logger.info("END : Check Verhicle tồn tại");
 			if (matchCount == false) {
-				update = new Document("$$addToSet", new Document("verhicles",
-						new BasicDBObject("type", verhicles.getType()).append("status", verhicles.getStatus())));
 				UpdateResult result = null;
+				logger.info("START : Thực thi thêm Verhicles");
 				try {
-					result = personRepository.addElement(update, query);
+					result = personRepository.addElement(verhicles, id);
 				} catch (Exception e) {
+					logger.error(e);
 					throw new InternalServerException("Can't add Verhicles! Systems appear a error");
 				}
+				logger.info("END : Thực thi thêm Verhicles");
+				logger.info("START : Kiểm tra kết quả");
 				if (result != null) {
 					modifiedCount = result.getModifiedCount();
 				}
+				logger.info("END : Kiểm tra kết quả");
 			}
 		}
+		logger.info("END : Lesson 2");
 		return modifiedCount;
 	}
 
 	// 3.Viết query update 1 verhicle trong bảng person thành ko sử dụng
 	public Long updateVerhicles(String type, ObjectId id, Integer status) {
-
-		BasicDBObject query = new BasicDBObject("_id", id);
+		logger.info("START : Lesson 3");
 		Long modifiedCount = new Long(-1);
-		Document docPer = personRepository.search(query);
-		UpdateResult result = null;
+		logger.info("START : Check ID");
+		Document docPer = personRepository.search(id);
+		UpdateResult result = null;		
 		if (docPer != null) {
-			Bson update = new Document("$set", new Document("verhicles.$[x].status", status));
-			List<Bson> filter = Arrays.asList(new Document("x.type", type));
+			logger.info("END : Check ID");
+			logger.info("START : Thực thi update status");
 			try {
-				result = personRepository.addElement(update, query, filter);
+				result = personRepository.addElement(type, id, status);
 			} catch (Exception e) {
+				logger.error(e);
 				throw new InternalServerException("Can't update. System is error!");
 			}
+			logger.info("END : Thực thi update status");
+			logger.info("START : Kiểm tra kết quả");
 			if (result != null) {
 				modifiedCount = result.getModifiedCount();
 			}
+			logger.info("END : Kiểm tra kết quả");
 		}
+		logger.info("END : Lesson 3");
 		return modifiedCount;
 	}
 
 	// 4.Viết query update toàn bộ person , thêm field fullName = firstName +
 	// lastName
 	public Long addFullName() {
-
+		logger.info("START : Lesson 4");
 		Long modifiedCount = new Long(-1);
-		List<Bson> update = Arrays.asList(new Document("$set", new Document("fullName",
-				new Document("$concat", Stream.of("$firstName", " ", "$lastName").collect(Collectors.toList())))));
 		UpdateResult result = null;
+		logger.info("START : Thực thi update");
 		try {
-			result = personRepository.update(update, new BasicDBObject());
+			result = personRepository.updateFullName();
 		} catch (Exception e) {
+			logger.error(e);
 			throw new InternalServerException("Can't update! Systems is error");
 		}
+		logger.info("END : Thực thi update");
 		if (result != null) {
 			modifiedCount = result.getModifiedCount();
 		}
+		logger.info("END : Lesson 4");
 		return modifiedCount;
 	}
 
@@ -134,26 +134,24 @@ public class PersonService {
 	 * verhicles thành ko sử dụng 3.2 thêm mới 1 language trong languages
 	 */
 	public Long updateOnePerson(Person personUpdate, ObjectId id) {
-
-		BasicDBObject query = new BasicDBObject("_id", id);
+		logger.info("START : Lesson 5");
 		Long modifiedCount = new Long(-1);
-		Document docPer = personRepository.search(query);
+		Document docPer = personRepository.search(id);
 		if (docPer != null) {
-			Bson update = new Document("$set",
-					new Document("verhicles.$[x].status", personUpdate.getVerhicles().get(0).getStatus()).append("age",
-							personUpdate.getAge())).append("$addToSet",
-									new Document("languages", personUpdate.getLanguages().get(0)));
-			List<Bson> filter = Arrays.asList(new Document("x.type", personUpdate.getVerhicles().get(0).getType()));
 			UpdateResult result = null;
+			logger.info("START : Thực thi update");
 			try {
-				result = personRepository.addElement(update, query, filter);
+				result = personRepository.updateOnePerson(personUpdate, id);
 			} catch (Exception e) {
+				logger.error(e);
 				throw new InternalServerException("Can't update. System is error!");
 			}
+			logger.info("END : Thực thi update");
 			if (result != null) {
 				modifiedCount = result.getModifiedCount();
 			}
 		}
+		logger.info("END : Lesson 5");
 		return modifiedCount;
 	}
 
@@ -161,44 +159,27 @@ public class PersonService {
 	// 9.Viết query get toàn bộ language hiện có trong collection person (kết quả ko
 	// được trùng nhau)
 	public Pagination countLang(Integer page, Integer limit) {
-
+		logger.info("START: Lesson 8");
 		Pagination pagination = new Pagination();
-		Bson unwind = new BasicDBObject("$unwind", "$languages");
-		Bson group = new BasicDBObject("$group", new BasicDBObject("_id", "$languages"));
-		Bson countLang = new BasicDBObject("$count", "languages");
-		Bson sort = new BasicDBObject("$sort", new BasicDBObject("_id", 1));
-		Bson project = new BasicDBObject("$project",
-				new BasicDBObject("countLang",
-						new BasicDBObject("$arrayElemAt",
-								Stream.of("$countLang.languages", 0).collect(Collectors.toList()))).append("showLang",
-										1));
-		Bson skip = new BasicDBObject("$skip", (page - 1) * limit);
-		Bson limits = new BasicDBObject("$limit", limit);
-		;
-		Bson facet = new BasicDBObject("$facet",
-				new BasicDBObject("countLang", Stream.of(unwind, group, countLang).collect(Collectors.toList()))
-						.append("showLang", Stream.of(unwind, group, sort, skip, limits).collect(Collectors.toList())));
-
 		/*
 		 * Trường hợp page, limit đều thêm vào và đều > 0 -> set pageCurrent Trường hợp
 		 * page, limit đều ko thêm vào -> set pageCurrent & totalPage = null , list<Doc>
 		 * = tất cả Doc match Ngược lại throw Exception
 		 */
 		pagination.setPageCurrent(page);
-
-		List<Bson> query = new ArrayList<>(); // query lay record match (kèm limit & skip nếu có)
-		query.add(facet);
-		query.add(project);
-
 		// thực thi hàm lấy ra số record theo limit và skip
 		Document doc = null;
+		logger.info("START : Thực thi truy vấn");
 		try {
-			doc  = personRepository.showDB(query);
+			doc = personRepository.showDB(page, limit);
 		} catch (Exception e) {
+			logger.error(e);
 			throw new InternalServerException("Error retrive!");
 		}
+		logger.info("END : Thực thi truy vấn");
 		List<Document> listDoc = null;
 		if (doc != null) {
+			logger.info("START : Xử lý kết quả truy vấn");
 			listDoc = new ArrayList<>();
 			listDoc.add(doc);
 			// set thuộc tính List<Doc> của Pagination -> được tính toán ở count(dòng 211)
@@ -215,49 +196,30 @@ public class PersonService {
 					pagination.setTotalPage(totalRecord / limit);
 				}
 			}
-
+			logger.info("END : Xử lý kết quả truy vấn");
 		}
+		logger.info("END: Lesson 8");
 		return pagination;
 	}
 
 	// 10.Viết query get những person có họ hoặc tên chứa "Nguyễn" và ngày sinh
 	// trong khoảng tháng 2~ tháng 10
 	public Pagination showPerson(String fullName, Integer monthStart, Integer monthEnd, Integer page, Integer limit) {
-
+		logger.info("START : Lesson 10");
 		Pagination pagination = new Pagination();
-		Bson project = new BasicDBObject("$project",
-				new BasicDBObject("month", new BasicDBObject("$month", "$dateofbirth")).append("fullName", 1)
-						.append("age", 1).append("sex", 1).append("dateofbirth", 1).append("languages", 1)
-						.append("verhicles", 1).append("verhicles", 1).append("phone", 1));
-		Bson match = new BasicDBObject("$match",
-				new BasicDBObject("$and",
-						Arrays.asList(new BasicDBObject("fullName", new BasicDBObject("$regex", fullName))
-								.append("month", new BasicDBObject("$gte", monthStart))
-								.append("month", new BasicDBObject("$lte", monthEnd)))));
-		Bson sort = new BasicDBObject("$sort", new BasicDBObject("_id", 1));
-		Bson count = new BasicDBObject("$count", "total");
-		Bson project2 = new BasicDBObject("$project",
-				new BasicDBObject("total",
-						new BasicDBObject("$arrayElemAt", Stream.of("$total.total", 0).collect(Collectors.toList())))
-								.append("data", 1));
-		Bson skip = new BasicDBObject("$skip", (page - 1) * limit);
-		Bson limits = new BasicDBObject("$limit", limit);
-		Bson facet = new BasicDBObject("$facet",
-				new BasicDBObject("total", Stream.of(project, match, count).collect(Collectors.toList())).append("data",
-						Stream.of(project, match, sort, skip, limits).collect(Collectors.toList())));
 		pagination.setPageCurrent(page);
-
-		List<Bson> query = new ArrayList<>();
-		query.add(facet);
-		query.add(project2);
 		Document doc = null;
+		logger.info("START : Thực thi truy vấn");
 		try {
-			doc = personRepository.showDB(query);
+			doc = personRepository.showDB10(fullName, monthStart, monthEnd, page, limit);
 		} catch (Exception e) {
+			logger.error(e);
 			throw new InternalServerException("Error retrive!");
 		}
+		logger.info("END : Thực thi truy vấn");
 		List<Document> listDoc = null;
 		if (doc != null) {
+			logger.info("START : Xử lý kết quả truy vấn");
 			listDoc = doc.getList("data", Document.class);
 			pagination.setListDoc(listDoc);
 			Integer totalRecord = doc.getInteger("total");
@@ -271,8 +233,9 @@ public class PersonService {
 					pagination.setTotalPage(totalRecord / limit);
 				}
 			}
-
+			logger.info("END : Xử lý kết quả truy vấn");
 		}
+		logger.info("END : Lesson 10");
 		return pagination;
 	}
 
@@ -283,41 +246,23 @@ public class PersonService {
 	 * "Tiếng Việt") + email (chỉ hiển thị những email có đuôi là @gmail.com)
 	 */
 	public Pagination showPerson11(String mailRegex, String sex, String languages, Integer page, Integer limit) {
-
+		logger.info("START : Lesson 11");
 		Pagination pagination = new Pagination();
-		Bson project = new BasicDBObject("$project", new BasicDBObject("items.fullName", 1).append("items.phone", 1)
-				.append("items.languages", 1).append("items.email", 1));
-		Bson match = new BasicDBObject("$match", new BasicDBObject("email", new BasicDBObject("$regex", mailRegex))
-				.append("sex", sex).append("languages", languages));
-		Bson group = new BasicDBObject("$group",
-				new BasicDBObject("_id", "$age").append("items", new BasicDBObject("$push", "$$ROOT")));
-		Bson count = new BasicDBObject("$count", "total");
-		Bson sort = new BasicDBObject("$sort", new BasicDBObject("_id", 1));
-		Bson project2 = new BasicDBObject("$project",
-				new BasicDBObject("total",
-						new BasicDBObject("$arrayElemAt", Stream.of("$total.total", 0).collect(Collectors.toList())))
-								.append("data", 1));
-		Bson skip = new BasicDBObject("$skip", (page - 1) * limit);
-		Bson limits = new BasicDBObject("$limit", limit);
-		Bson facet = new BasicDBObject("$facet",
-				new BasicDBObject("total", Stream.of(match, group, count).collect(Collectors.toList())).append("data",
-						Stream.of(match, group, project, sort, skip, limits).collect(Collectors.toList())));
 		pagination.setPageCurrent(page);
-
-		List<Bson> query = new ArrayList<>();
-		query.add(facet);
-		query.add(project2);
 		Document doc = null;
+		logger.info("START : Thực thi truy vấn");
 		try {
-			doc = personRepository.showDB(query);
+			doc = personRepository.showDB11(mailRegex, sex, languages, page, limit);
 		} catch (Exception e) {
+			logger.error(e);
 			throw new InternalServerException("Error retrive!");
 		}
+		logger.info("END : Thực thi truy vấn");
 		List<Document> listDoc = null;
 		if (doc != null) {
+			logger.info("START : Xử lý truy vấn");
 			listDoc = doc.getList("data", Document.class);
 			pagination.setListDoc(listDoc);
-
 			Integer totalRecord = doc.getInteger("total");
 			if (totalRecord <= limit) {
 				totalRecord = limit;
@@ -329,63 +274,32 @@ public class PersonService {
 					pagination.setTotalPage(totalRecord / limit);
 				}
 			}
-
+			logger.info("END : Xử lý truy vấn");
 		}
-
+		logger.info("END : Lesson 11");
 		return pagination;
 	}
 
 	// 12.Tương tự số 11, nhưng trả về thêm tổng số record thoả yêu cầu + tổng số
 	// record hiện có trong collection person
 	public Pagination showPerson12(String mailRegex, String sex, String languages, Integer page, Integer limit) {
-
+		logger.info("START : Lesson 12");
 		Pagination pagination = new Pagination();
-		BasicDBObject project1 = new BasicDBObject("$project", new BasicDBObject("items.fullName", 1)
-				.append("items.phone", 1).append("items.languages", 1).append("items.email", 1));
-		BasicDBObject match = new BasicDBObject("$match",
-				new BasicDBObject("email", new BasicDBObject("$regex", mailRegex)).append("sex", sex)
-						.append("languages", languages));
-		BasicDBObject group = new BasicDBObject("$group",
-				new BasicDBObject("_id", "$age").append("items", new BasicDBObject("$push", "$$ROOT")));
-		Bson count = new BasicDBObject("$count", "total");
-		Bson sort = new BasicDBObject("$sort", new BasicDBObject("_id", 1));
-		Bson project2 = new BasicDBObject("$project",
-				new BasicDBObject("totalrecord",
-						new BasicDBObject("$arrayElemAt",
-								Stream.of("$totalrecord.totalrecord", 0).collect(Collectors.toList())))
-										.append("totalperson",
-												new BasicDBObject("$arrayElemAt",
-														Stream.of("$totalperson.totalperson", 0)
-																.collect(Collectors.toList())))
-										.append("data", 1).append("total", new BasicDBObject("$arrayElemAt",
-												Stream.of("$totalgroup.total", 0).collect(Collectors.toList()))));
-		BasicDBObject skip = new BasicDBObject("$skip", (page - 1) * limit);
-		;
-		BasicDBObject limits = new BasicDBObject("$limit", limit);
-		Bson facet = new BasicDBObject("$facet",
-				new BasicDBObject("totalrecord", Arrays.asList(new BasicDBObject("$count", "totalrecord")))
-						.append("totalperson",
-								Stream.of(match, new BasicDBObject("$count", "totalperson"))
-										.collect(Collectors.toList()))
-						.append("data",
-								Stream.of(match, group, project1, sort, skip, limits).collect(Collectors.toList()))
-						.append("totalgroup", Stream.of(match, group, count).collect(Collectors.toList())));
 		pagination.setPageCurrent(page);
-
-		List<Bson> query = new ArrayList<>();
-		query.add(facet);
-		query.add(project2);
 		Document doc = null;
+		logger.info("START : Thực thi truy vấn");
 		try {
-			doc = personRepository.showDB(query);
+			doc = personRepository.showDB12(mailRegex, sex, languages, page, limit);
 		} catch (Exception e) {
+			logger.error(e);
 			throw new InternalServerException("Error retrive!");
 		}
+		logger.info("END : Thực thi truy vấn");
 		List<Document> listDoc = null;
 		if (doc != null) {
+			logger.info("START : Xử lý kết quả truy vấn");
 			listDoc = doc.getList("data", Document.class);
 			pagination.setListDoc(listDoc);
-
 			Integer totalRecord = doc.getInteger("total");
 			if (totalRecord <= limit) {
 				totalRecord = limit;
@@ -397,9 +311,9 @@ public class PersonService {
 					pagination.setTotalPage(totalRecord / limit);
 				}
 			}
-
+			logger.info("START : Xử lý kết quả truy vấn");
 		}
-
+		logger.info("END : Lesson 12");
 		return pagination;
 	}
 

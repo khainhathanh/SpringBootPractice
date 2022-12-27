@@ -1,4 +1,5 @@
 package com.example.demo.exception;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -9,9 +10,8 @@ public class ExceptionHandlerAPI {
 
 	@ExceptionHandler(InternalServerException.class)
 	@ResponseStatus(value = HttpStatus.INTERNAL_SERVER_ERROR)
-	public ErrorResponse internalServerException(InternalServerException ex) {
-		 return new ErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage()); 
+	public ErrorResponse internalServerException(InternalServerException internalEx) {
+		return new ErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, internalEx.getMessage());
 	}
-	
-	
+
 }

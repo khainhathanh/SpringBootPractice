@@ -22,16 +22,16 @@ import com.example.demo.service.PersonService;
 public class PersonAPI {
 	@Autowired
 	PersonService personService;
-
+	
 	@PostMapping(value = "/person")
 	public ResponseEntity<?> createPerson(@RequestBody List<Person> listPerson) {
-		List<String> listIDPerson = null;
+		Integer countInsert = null;
 		if (!listPerson.isEmpty()) {
-			listIDPerson = personService.insert(listPerson);
+			countInsert = personService.insert(listPerson);
 		} else {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("request error .Please check again!");
 		}
-		return ResponseEntity.status(HttpStatus.OK).body(listIDPerson);
+		return ResponseEntity.status(HttpStatus.OK).body(countInsert);
 	}
 
 	// 2.Viết query thêm 1 verhicle mới trong bảng person
