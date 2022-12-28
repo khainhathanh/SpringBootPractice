@@ -24,7 +24,7 @@ public class EmployeeRepository {
 	@Autowired
 	MongoDatabase database;
 	
-	public BulkWriteResult insert(List<Employee> listEmployee) {
+	public Integer insert(List<Employee> listEmployee) {
 		MongoCollection<Document> mongoClient = database.getCollection("Employee");
 		List<WriteModel<Document>> listWrite = new ArrayList<>();		
 		for (Employee itemEmployee : listEmployee) {
@@ -36,7 +36,8 @@ public class EmployeeRepository {
 			listWrite.add(new InsertOneModel<>(document));
 		}
 		BulkWriteResult result = mongoClient.bulkWrite(listWrite);
-		return result;
+		
+		return result.getInsertedCount();
 	}
 	
 	public Document showDB14(Integer year, Integer page, Integer limit) {

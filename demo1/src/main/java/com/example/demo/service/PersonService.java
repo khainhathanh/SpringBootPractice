@@ -14,8 +14,6 @@ import com.example.demo.entity.Person;
 import com.example.demo.entity.Verhicles;
 import com.example.demo.exception.InternalServerException;
 import com.example.demo.repository.PersonRepository;
-import com.mongodb.bulk.BulkWriteResult;
-import com.mongodb.client.result.UpdateResult;
 
 @Service
 public class PersonService {
@@ -26,7 +24,7 @@ public class PersonService {
 
 	public Integer insert(List<Person> listPerson) {
 		logger.info("START : Lesson 1");
-			BulkWriteResult result = null;
+			Integer result = null;
 			logger.info("START: Thực thi insert");
 			try {
 				result = personRepository.insert(listPerson);
@@ -35,9 +33,8 @@ public class PersonService {
 				throw new InternalServerException("Can't insert! Systems is error");
 			}
 			logger.info("END: Thực thi insert");
-			Integer count = result.getInsertedCount();
 		logger.info("END : Lesson 1");
-		return count;
+		return result;
 	}
 
 	// 2.Viết query thêm 1 verhicle mới trong bảng person
@@ -61,7 +58,7 @@ public class PersonService {
 			}
 			logger.info("END : Check Verhicle tồn tại");
 			if (matchCount == false) {
-				UpdateResult result = null;
+				Long result = null;
 				logger.info("START : Thực thi thêm Verhicles");
 				try {
 					result = personRepository.addElement(verhicles, id);
@@ -72,7 +69,7 @@ public class PersonService {
 				logger.info("END : Thực thi thêm Verhicles");
 				logger.info("START : Kiểm tra kết quả");
 				if (result != null) {
-					modifiedCount = result.getModifiedCount();
+					modifiedCount = result;
 				}
 				logger.info("END : Kiểm tra kết quả");
 			}
@@ -87,7 +84,7 @@ public class PersonService {
 		Long modifiedCount = new Long(-1);
 		logger.info("START : Check ID");
 		Document docPer = personRepository.search(id);
-		UpdateResult result = null;		
+		Long result = null;		
 		if (docPer != null) {
 			logger.info("END : Check ID");
 			logger.info("START : Thực thi update status");
@@ -100,7 +97,7 @@ public class PersonService {
 			logger.info("END : Thực thi update status");
 			logger.info("START : Kiểm tra kết quả");
 			if (result != null) {
-				modifiedCount = result.getModifiedCount();
+				modifiedCount = result;
 			}
 			logger.info("END : Kiểm tra kết quả");
 		}
@@ -113,7 +110,7 @@ public class PersonService {
 	public Long addFullName() {
 		logger.info("START : Lesson 4");
 		Long modifiedCount = new Long(-1);
-		UpdateResult result = null;
+		Long result = null;
 		logger.info("START : Thực thi update");
 		try {
 			result = personRepository.updateFullName();
@@ -123,7 +120,7 @@ public class PersonService {
 		}
 		logger.info("END : Thực thi update");
 		if (result != null) {
-			modifiedCount = result.getModifiedCount();
+			modifiedCount = result;
 		}
 		logger.info("END : Lesson 4");
 		return modifiedCount;
@@ -138,7 +135,7 @@ public class PersonService {
 		Long modifiedCount = new Long(-1);
 		Document docPer = personRepository.search(id);
 		if (docPer != null) {
-			UpdateResult result = null;
+			Long result = null;
 			logger.info("START : Thực thi update");
 			try {
 				result = personRepository.updateOnePerson(personUpdate, id);
@@ -148,7 +145,7 @@ public class PersonService {
 			}
 			logger.info("END : Thực thi update");
 			if (result != null) {
-				modifiedCount = result.getModifiedCount();
+				modifiedCount = result;
 			}
 		}
 		logger.info("END : Lesson 5");

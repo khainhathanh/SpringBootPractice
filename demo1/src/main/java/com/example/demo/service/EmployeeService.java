@@ -11,7 +11,6 @@ import com.example.demo.entity.Employee;
 import com.example.demo.entity.Pagination;
 import com.example.demo.exception.InternalServerException;
 import com.example.demo.repository.EmployeeRepository;
-import com.mongodb.bulk.BulkWriteResult;
 
 @Service
 public class EmployeeService {
@@ -23,7 +22,7 @@ public class EmployeeService {
 
 	public Integer insert(List<Employee> listEmployee) {
 		logger.info("START : Lesson 1");
-		BulkWriteResult result = null;
+		Integer result = null;
 		logger.info("START : Thực thi insert");
 		try {
 			result = employeeRepository.insert(listEmployee);
@@ -32,9 +31,8 @@ public class EmployeeService {
 			throw new InternalServerException("Can't insert! Systems is error");
 		}
 		logger.info("END : Thực thi insert");
-		Integer count = result.getInsertedCount();
 		logger.info("END : Lesson 1");
-		return count;
+		return result;
 	}
 
 	// 14.Thống kê công ty A , vào năm 2022 có bao nhiêu nhân viên vào làm, tổng mức

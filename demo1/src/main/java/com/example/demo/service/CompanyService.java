@@ -13,8 +13,6 @@ import com.example.demo.entity.NameCompany;
 import com.example.demo.entity.Pagination;
 import com.example.demo.exception.InternalServerException;
 import com.example.demo.repository.CompanyRepository;
-import com.mongodb.bulk.BulkWriteResult;
-import com.mongodb.client.result.UpdateResult;
 
 @Service
 public class CompanyService {
@@ -26,7 +24,7 @@ public class CompanyService {
 
 	public Integer insert(List<Company> listCompany) {
 		logger.info("START : Lession 1");
-		BulkWriteResult result = null;
+		Integer result = null;
 		logger.info("START : Thực thi insert");
 		try {
 			result = companyRepository.insert(listCompany);
@@ -35,33 +33,30 @@ public class CompanyService {
 			throw new InternalServerException("Can't insert! Systems is error");
 		}
 		logger.info("END : Thực thi insert");
-		Integer count = result.getInsertedCount();
 		logger.info("END : Lession 1");
-		return count;
+		return result;
 	}
 
 	// 6.Viết query update 1 company, thêm 1 name mới theo ngôn ngữ trong names ....
 	public Long updateName(NameCompany names, ObjectId id) {
 		logger.info("START : Lesson 6");
-		Long modifiedCount = new Long(-1);
+		Long modifiedCount = null;
 		boolean matchCount = false;
 		logger.info("START : Check ID");
 		Document docPer = companyRepository.search(id);
 		if (docPer != null) {
 			logger.info("END : Check ID");
-			List<Document> listNames = docPer.getList("names", Document.class);
+			Document docLang = companyRepository.checkLangNames(names, id);
 			// duyet tat ca field List<verhicles> , neu ton tai thuoc tinh type cung loai se
 			// bo qua
 			logger.info("START : Check languages tồn tại");
-			for (Document item : listNames) {
-				if (item.getString("lang").contentEquals(names.getLang())) {
-					matchCount = true;
-					break;
-				}
+			if (!docLang.getList("lang", Document.class).isEmpty()) {
+				matchCount = true;
 			}
+			
 			logger.info("END : Check languages tồn tại");
 			if (matchCount == false) {
-				UpdateResult result = null;
+				Long result = null;
 				logger.info("START : Thực thi update");
 				try {
 					result = companyRepository.addElement(names, id);
@@ -72,9 +67,11 @@ public class CompanyService {
 				logger.info("END : Thực thi update");
 				logger.info("START : Kiểm tra kết quả");
 				if (result != null) {
-					modifiedCount = result.getModifiedCount();
+					modifiedCount = result;
 				}
 				logger.info("END : Kiểm tra kết quả");
+			}else {
+				modifiedCount = (long) -1;
 			}
 		}
 		logger.info("END : Lesson 6");
@@ -89,7 +86,7 @@ public class CompanyService {
 		Document docPer = companyRepository.search(id);
 		if (docPer != null) {
 			logger.info("END : Check ID");
-			UpdateResult result = null;
+			Long result = null;
 			logger.info("START : Thực thi delete");
 			try {
 				result = companyRepository.addElement7(lang, id);
@@ -100,7 +97,7 @@ public class CompanyService {
 			logger.info("START : Thực thi delete");
 			logger.info("START : Kiểm tra kết quả");
 			if (result != null) {
-				modifiedCount = result.getModifiedCount();
+				modifiedCount = result;
 			}
 			logger.info("END : Kiểm tra kết quả");
 		}

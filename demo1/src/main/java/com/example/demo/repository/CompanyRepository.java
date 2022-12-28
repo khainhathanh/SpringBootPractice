@@ -3,6 +3,7 @@ package com.example.demo.repository;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -28,7 +29,7 @@ public class CompanyRepository {
 	@Autowired
 	MongoDatabase database;
 
-	public BulkWriteResult insert(List<Company> listCompany) {
+	public Integer insert(List<Company> listCompany) {
 		MongoCollection<Document> mongoClient = database.getCollection("Company");
 		List<WriteModel<Document>> listWrite = new ArrayList<>();
 		for (Company itemCompany : listCompany) {
@@ -41,30 +42,47 @@ public class CompanyRepository {
 			listWrite.add(new InsertOneModel<>(document));
 		}
 		BulkWriteResult result = mongoClient.bulkWrite(listWrite);
-		return result;
+		Integer count = result.getInsertedCount();
+		return count;
 	}
 
-	public UpdateResult addElement(NameCompany names, ObjectId id) {
+	public Long addElement(NameCompany names, ObjectId id) {
 		MongoCollection<Document> mongoClient = database.getCollection("Company");
 		BasicDBObject query = new BasicDBObject("_id", id);
 		Bson update = new Document("$addToSet",
 				new Document("names", new BasicDBObject("lang", names.getLang()).append("name", names.getName())));
 		UpdateResult result = mongoClient.updateOne(query, update);
-		return result;
+		Long modifiedCount = result.getModifiedCount();
+		return modifiedCount;
 	}
 
-	public UpdateResult addElement7(String lang, ObjectId id) {
+	public Long addElement7(String lang, ObjectId id) {
 		MongoCollection<Document> mongoClient = database.getCollection("Company");
 		BasicDBObject query = new BasicDBObject("_id", id);
 		Bson update = new Document("$pull", new Document("names", new BasicDBObject("lang", lang)));
 		UpdateResult result = mongoClient.updateOne(query, update);
-		return result;
+		Long modifiedCount = result.getModifiedCount();
+		return modifiedCount;
 	}
 
 	public Document search(ObjectId id) {
 		MongoCollection<Document> mongoClient = database.getCollection("Company");
 		BasicDBObject query = new BasicDBObject("_id", id);
 		Document result = mongoClient.find(query).first();
+		return result;
+	}
+	public Document checkLangNames(NameCompany names, ObjectId id) {
+		MongoCollection<Document> mongoClient = database.getCollection("Company");
+		Bson match = new BasicDBObject("$match",new BasicDBObject("_id",id));
+		Bson project = new BasicDBObject("$project",
+				new BasicDBObject("lang",
+						new BasicDBObject("$filter",new BasicDBObject("input","$names")
+								.append("as", "item")
+								.append("cond", 
+										new BasicDBObject("$eq", 
+												Stream.of("$$item.lang",names.getLang()).collect(Collectors.toList())))
+								)));
+		Document result = mongoClient.aggregate(Stream.of(match,project).collect(Collectors.toList())).first();
 		return result;
 	}
 

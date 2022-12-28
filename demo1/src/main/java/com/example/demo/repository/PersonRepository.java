@@ -29,7 +29,7 @@ public class PersonRepository {
 	@Autowired
 	MongoDatabase database;
 
-	public BulkWriteResult insert(List<Person> listPerson) {
+	public Integer insert(List<Person> listPerson) {
 		MongoCollection<Document> mongoClient = database.getCollection("Person");
 		List<WriteModel<Document>> listWrite = new ArrayList<>();
 		for (Person itemPerson : listPerson) {
@@ -47,18 +47,20 @@ public class PersonRepository {
 			listWrite.add(new InsertOneModel<>(document));
 		}
 		BulkWriteResult result = mongoClient.bulkWrite(listWrite);
-		return result;
+		Integer count = result.getInsertedCount();
+		return count;
 	}
 
-	public UpdateResult updateFullName() {
+	public Long updateFullName() {
 		MongoCollection<Document> mongoClient = database.getCollection("Person");
 		List<Bson> update = Arrays.asList(new Document("$set", new Document("fullName",
 				new Document("$concat", Stream.of("$firstName", " ", "$lastName").collect(Collectors.toList())))));
 		UpdateResult result = mongoClient.updateMany(new BasicDBObject(), update);
-		return result;
+		Long modifiedCount = result.getModifiedCount();
+		return modifiedCount;
 	}
 
-	public UpdateResult addElement(String type, ObjectId id, Integer status) {
+	public Long addElement(String type, ObjectId id, Integer status) {
 		MongoCollection<Document> mongoClient = database.getCollection("Person");
 		BasicDBObject query = new BasicDBObject("_id", id);
 		Bson update = new Document("$set", new Document("verhicles.$[x].status", status));
@@ -66,10 +68,11 @@ public class PersonRepository {
 		UpdateOptions options = new UpdateOptions();
 		options.arrayFilters(filter);
 		UpdateResult result = mongoClient.updateOne(query, update, options);
-		return result;
+		Long modifiedCount = result.getModifiedCount();
+		return modifiedCount;
 	}
 	
-	public UpdateResult updateOnePerson(Person personUpdate, ObjectId id) {
+	public Long updateOnePerson(Person personUpdate, ObjectId id) {
 		MongoCollection<Document> mongoClient = database.getCollection("Person");
 		BasicDBObject query = new BasicDBObject("_id", id);
 		Bson update = new Document("$set",
@@ -80,16 +83,18 @@ public class PersonRepository {
 		UpdateOptions options = new UpdateOptions();
 		options.arrayFilters(filter);
 		UpdateResult result = mongoClient.updateOne(query, update, options);
-		return result;
+		Long modifiedCount = result.getModifiedCount();
+		return modifiedCount;
 	}
 
-	public UpdateResult addElement(Verhicles verhicles, ObjectId id) {
+	public Long addElement(Verhicles verhicles, ObjectId id) {
 		MongoCollection<Document> mongoClient = database.getCollection("Person");
 		BasicDBObject query = new BasicDBObject("_id", id);
 		Bson update = new Document("$$addToSet", new Document("verhicles",
 				new BasicDBObject("type", verhicles.getType()).append("status", verhicles.getStatus())));
 		UpdateResult result = mongoClient.updateOne(query, update);
-		return result;
+		Long modifiedCount = result.getModifiedCount();
+		return modifiedCount;
 	}
 
 	public Document search(ObjectId id) {

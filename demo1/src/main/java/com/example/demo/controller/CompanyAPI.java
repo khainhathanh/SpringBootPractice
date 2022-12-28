@@ -45,8 +45,10 @@ public class CompanyAPI {
 	public ResponseEntity<?> updateName(@RequestBody NameCompany names, @RequestParam(value = "id") String id) {
 		Long upsertID = companyService.updateName(names, new ObjectId(id));
 		// truong hop loi update
-		if (upsertID == -1) {
+		if (upsertID == null) {
 			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Not found record to update");
+		}else if(upsertID == -1) {
+			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Record is exist");
 		}
 		return ResponseEntity.status(HttpStatus.OK).body(upsertID);
 
