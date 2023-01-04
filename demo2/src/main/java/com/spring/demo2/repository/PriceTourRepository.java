@@ -63,7 +63,7 @@ public class PriceTourRepository {
 		MongoCollection<Document> mongoClient = database.getCollection("PriceTour");
 		List<WriteModel<Document>> listWrite = new ArrayList<>();
 		for (PriceTour itemPriceTour : listPriceTour) {
-			Document document = new Document("idTour", itemPriceTour.getTourID())
+			Document document = new Document("tourID", itemPriceTour.getTourID())
 					.append("price", itemPriceTour.getPrice()).append("currency", itemPriceTour.getCurrency())
 					.append("dateApplyStart", itemPriceTour.getDateApplyStart())
 					.append("dateApplyEnd", itemPriceTour.getDateApplyEnd());

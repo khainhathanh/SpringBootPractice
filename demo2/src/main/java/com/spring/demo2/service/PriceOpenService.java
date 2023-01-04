@@ -1,6 +1,5 @@
 package com.spring.demo2.service;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.log4j.Logger;
@@ -23,19 +22,7 @@ public class PriceOpenService {
 	public Document insert(List<PriceOpen> listPriceOpen) {
 		Document docResult = null;
 		try {
-			List<PriceOpen> listInsertPriceOpen = new ArrayList<>();
-			List<PriceOpen> listUpdatePriceOpen = new ArrayList<>();
-			for (PriceOpen itemPriceOpen : listPriceOpen) {
-				Document docPriceOpen = priceOpenRepository.find(itemPriceOpen.getTourID());
-				if (docPriceOpen != null) {
-					listUpdatePriceOpen.add(itemPriceOpen);
-				} else {
-					listInsertPriceOpen.add(itemPriceOpen);
-				}
-			}
-			if (!listInsertPriceOpen.isEmpty() || !listUpdatePriceOpen.isEmpty()) {
-				docResult = priceOpenRepository.insert(listInsertPriceOpen, listUpdatePriceOpen);
-			}
+			docResult = priceOpenRepository.insert(listPriceOpen);
 		} catch (Exception e) {
 			logger.error(e);
 			throw new InternalServerException("Can't insert! Systems is error");

@@ -39,7 +39,7 @@ public class PriceTourService {
 			if (!listDocPrice.isEmpty()) {
 				for (Document doc : listDocPrice) {
 					PriceOpen pO = new PriceOpen();
-					pO.setTourID(doc.getString("idTour"));
+					pO.setTourID(doc.getString("tourID"));
 					pO.setPrice(doc.getInteger("price"));
 					pO.setCurrency(doc.getString("currency"));
 					listPriceOpen.add(pO);

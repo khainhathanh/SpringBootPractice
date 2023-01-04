@@ -33,6 +33,7 @@ public class DateOpenService {
 			result = dateOpenRepository.insert(listDateOpen);
 			List<Document> listDocDate = result.getList("listDocDate", Document.class);
 			Integer insertCount = result.getInteger("InsertCount");
+			
 			docResult = new Document("DateOpen", new BasicDBObject("InsertCount", insertCount));
 			List<PriceOpen> listPriceOpen = new ArrayList<>();
 			if (!listDocDate.isEmpty()) {

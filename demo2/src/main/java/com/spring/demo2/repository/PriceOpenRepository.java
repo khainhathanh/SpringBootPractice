@@ -12,7 +12,6 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.InsertOneModel;
 import com.mongodb.client.model.UpdateOneModel;
 import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.model.WriteModel;
@@ -25,27 +24,23 @@ public class PriceOpenRepository {
 	@Autowired
 	private MongoDatabase database;
 	
-	public Document insert(List<PriceOpen> listInsertPriceOpen,List<PriceOpen> listUpdatePriceOpen) {
+	public Document insert(List<PriceOpen> listPriceOpen) {
 		MongoCollection<Document> mongoClient = database.getCollection("PriceOpen");
 		List<WriteModel<Document>> listWrite = new ArrayList<>();
 		
-		for (PriceOpen itemPriceOpen : listInsertPriceOpen) {
-			Document document = new Document("tourID", itemPriceOpen.getTourID())
-					.append("dateOpen", itemPriceOpen.getDateOpen())
-					.append("currency", itemPriceOpen.getCurrency())
-					.append("price", itemPriceOpen.getPrice());
-			listWrite.add(new InsertOneModel<>(document));
-		}
-		for (PriceOpen itemPriceOpen : listUpdatePriceOpen) {
+		for (PriceOpen itemPriceOpen : listPriceOpen) {
 			Bson filter = new BasicDBObject("tourID",itemPriceOpen.getTourID());
 			Bson update = new BasicDBObject("$set",
-					new BasicDBObject("dateOpen", itemPriceOpen.getDateOpen())
+					new BasicDBObject("tourID",itemPriceOpen.getTourID())
+					.append("dateOpen", itemPriceOpen.getDateOpen())
 					.append("currency", itemPriceOpen.getCurrency())
 					.append("price", itemPriceOpen.getPrice()));
-			listWrite.add(new UpdateOneModel<>(filter, update));
+			UpdateOptions options = new UpdateOptions();
+			options.upsert(true);
+			listWrite.add(new UpdateOneModel<>(filter, update, options));
 		}
 		BulkWriteResult result = mongoClient.bulkWrite(listWrite);
-		Document docResult = new Document("InsertCount",result.getInsertedCount())
+		Document docResult = new Document("InsertCount",result.getUpserts().size())
 				.append("ModifiCount", result.getModifiedCount());
 		return docResult; 	
 	}
@@ -74,12 +69,5 @@ public class PriceOpenRepository {
 			docResult = new Document("ModifiCount",result.getModifiedCount());
 		}
 		return docResult; 	
-	}
-	
-	public Document find(String tourID) {
-		MongoCollection<Document> mongoClient = database.getCollection("PriceOpen");
-		Bson query = new BasicDBObject("tourID",tourID);
-		Document doc = mongoClient.find(query).first();
-		return doc;
 	}
 }
