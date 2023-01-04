@@ -1,0 +1,1 @@
+2022-12-30 17:01:45 ERROR AvailableTourService:71 - java.util.concurrent.CompletionException: com.mongodb.MongoCommandException: Command failed with error 2 (BadValue): 'unknown operator: $$in' on server localhost:27017. The full response is {"ok": 0.0, "errmsg": "unknown operator: $$in", "code": 2, "codeName": "BadValue"}

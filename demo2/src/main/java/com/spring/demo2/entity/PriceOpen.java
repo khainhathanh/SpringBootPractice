@@ -2,8 +2,6 @@ package com.spring.demo2.entity;
 
 import java.util.List;
 
-import org.bson.types.ObjectId;
-import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import lombok.Getter;
@@ -15,15 +13,10 @@ import lombok.ToString;
 @Getter
 @Setter
 @ToString
-@Document(collection = "DateOpen")
-public class DateOpen {
-	
-	@Id
-	private ObjectId id;
-
-	private List<String> dateAvailable;
-	
-	private Integer status;
-	
+@Document(collection = "PriceOpen")
+public class PriceOpen {
 	private String tourID;
+	private List<String> dateOpen;
+	private String currency;
+	private Integer price;
 }

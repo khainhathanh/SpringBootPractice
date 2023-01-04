@@ -3,6 +3,7 @@ package com.spring.demo2.entity;
 import java.util.Date;
 
 import org.bson.types.ObjectId;
+import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -18,9 +19,11 @@ import lombok.ToString;
 @ToString
 @Document(collection = "PriceTour")
 public class PriceTour {
+	
+	@Id
 	private ObjectId id;
 	
-	private String idTour;
+	private String tourID;
 	
 	private Integer price;
 	

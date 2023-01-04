@@ -56,13 +56,11 @@ public class AvailableTourService {
 							doc2 = fn.next();
 							mapDoc2.put(doc2.getObjectId("tourID"), doc2);
 						}
-						System.out.println("1");
 						return mapDoc2;
 					});
 			CompletableFuture<Document> futureDateOpen = CompletableFuture
 					.supplyAsync(() -> dateOpenRepository.showDBDateOpen(keySet1, date, skip, limit)).thenApply(fn -> {
 						doc3.put("pagination", fn);
-						System.out.println("2");
 						return doc3;
 					});
 			CompletableFuture<Void> completeAllof = CompletableFuture.allOf(futurePriceTour, futureDateOpen);
