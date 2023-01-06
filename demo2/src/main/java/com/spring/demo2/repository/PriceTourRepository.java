@@ -70,10 +70,12 @@ public class PriceTourRepository {
 			listWrite.add(new InsertOneModel<>(document));
 		}
 		
+		// ChangeStream collection PriceTour
 		MongoCursor<ChangeStreamDocument<Document>> changStreams = changStream.changeStreamData(mongoClient);
 		
 		BulkWriteResult result = mongoClient.bulkWrite(listWrite);
 		
+		//Get data ChangeStream
 		ChangeStreamDocument<Document> event = changStreams.tryNext();
 		List<Document> listDocPrice = new ArrayList<>();
 		while (event != null) {
@@ -103,9 +105,12 @@ public class PriceTourRepository {
 			dataUpdate.append("dateApplyEnd", priceTour.getDateApplyEnd());
 		}
 		Bson update = new BasicDBObject("$set",dataUpdate);
-
+		
+		// ChangeStream collection PriceTour
 		MongoCursor<ChangeStreamDocument<Document>> changStreams = changStream.changeStreamData(mongoClient);
 		UpdateResult result = mongoClient.updateOne(query, update);
+		
+		//Get data ChangeStream
 		ChangeStreamDocument<Document> event = changStreams.tryNext();
 		Document docPriceTour = null;
 		if (event != null) {

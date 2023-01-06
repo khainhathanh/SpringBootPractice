@@ -62,9 +62,13 @@ public class DateOpenRepository {
 					.append("status", itemDateOpen.getStatus());
 			listWrite.add(new InsertOneModel<>(document));
 		}
+		
+		// ChangeStream collection DateOpen
 		MongoCursor<ChangeStreamDocument<Document>> changStreams = changStream.changeStreamData(mongoClient);
 		List<Document> listDocDateOpen = new ArrayList<>();
 		BulkWriteResult result = mongoClient.bulkWrite(listWrite);
+		
+		//Get data ChangeStream
 		ChangeStreamDocument<Document> event = changStreams.tryNext();
 		while (event != null) {
 			Document docDateOpen = event.getFullDocument();
@@ -87,9 +91,12 @@ public class DateOpenRepository {
 			dataUpdate.append("status", dateOpen.getStatus());
 		}
 		Bson update = new BasicDBObject("$set",dataUpdate);
-
+		
+		// ChangeStream collection PriceTour
 		MongoCursor<ChangeStreamDocument<Document>> changStreams = changStream.changeStreamData(mongoClient);
 		UpdateResult result = mongoClient.updateOne(query, update);
+		
+		//Get data ChangeStream
 		ChangeStreamDocument<Document> event = changStreams.tryNext();
 		Document docPriceTour = null;
 		if (event != null) {
