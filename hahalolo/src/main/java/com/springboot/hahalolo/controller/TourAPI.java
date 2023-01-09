@@ -18,10 +18,10 @@ public class TourAPI {
 	private TourService tourService;
 	
 	@GetMapping(value = "/hahalolo")
-	public <T> ResponseOutput<List<Map<String,T>>> showList(@RequestParam(value = "nameTour", required = false) String nameTour,
-			@RequestParam(value = "typeTour", required = false) Integer typeTour,
-			@RequestParam(value = "langTour", required = false) String langTour,
-			@RequestParam(value = "topicTour", required = false) String topicTour,
+	public <T> ResponseOutput<List<Map<String,T>>> showList(@RequestParam(value = "turNm", required = false) String nameTour,
+			@RequestParam(value = "tn120", required = false) Integer typeTour,
+			@RequestParam(value = "lang", required = false) String langTour,
+			@RequestParam(value = "topicId", required = false) String topicTour,
 			@RequestParam(value = "ofset", required = false , defaultValue = "1") Integer page,
 			@RequestParam(value = "limit", required = false , defaultValue = "5") Integer limit){
 		if(page <= 0 && limit <=0) {
