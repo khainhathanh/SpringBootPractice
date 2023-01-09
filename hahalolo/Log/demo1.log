@@ -1,0 +1,3 @@
+2023-01-09 10:44:43 ERROR TourService:26 - com.mongodb.MongoQueryException: Query failed with error code 2 and error message 'unknown operator: $option' on server localhost:27017
+2023-01-09 10:45:05 ERROR TourService:26 - com.mongodb.MongoQueryException: Query failed with error code 2 and error message 'unknown operator: $option' on server localhost:27017
+2023-01-09 10:45:17 ERROR TourService:26 - com.mongodb.MongoQueryException: Query failed with error code 2 and error message 'unknown operator: $option' on server localhost:27017
