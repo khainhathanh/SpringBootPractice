@@ -4,9 +4,12 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.log4j.Logger;
 import org.bson.Document;
+import org.bson.conversions.Bson;
 import org.bson.json.JsonWriterSettings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
@@ -34,20 +37,60 @@ public class TourRepository {
 	@SuppressWarnings("unchecked")
 	public <T> List<Map<String,T>> showList(String nameTour, Integer typeTour, String langTour, String topicTour, Integer skip, Integer limit) {
 		MongoCollection<Document> mongoCollection = database.getCollection("T100");
-		BasicDBObject query = new BasicDBObject();
+		BasicDBObject match = new BasicDBObject();	
+		BasicDBObject project = null;
 		if(nameTour != null) {
-			query.append("t101.tv151", new BasicDBObject("$regex",nameTour).append("$options", "i"));
+			match.append("t101.tv151", new BasicDBObject("$regex",nameTour).append("$options", "i"));
 		}
 		if(typeTour != null) {
-			query.append("tn120", typeTour);
+			match.append("tn120", typeTour);
 		}
 		if(langTour != null) {
-			query.append("ft101.lang", langTour);
+			match.append("ft101.lang", langTour);
+			project = new BasicDBObject("$project", 
+					new BasicDBObject("id", 1)
+					.append("ft101",
+							new BasicDBObject("$filter", 
+									new BasicDBObject("input","$ft101")
+									.append("as", "item")
+									.append("cond", new BasicDBObject("$eq",Stream.of("$$item.lang",langTour).collect(Collectors.toList())))
+									)
+							)
+					.append("currency", 1)
+					.append("dl146", 1)
+					.append("dl147", 1)
+					.append("dl148", 1)
+					.append("dl149", 1)
+					.append("lang", 1)
+					.append("pt550", 1)
+					.append("t101", 1)
+					.append("t102", 1)
+					.append("t550", 1)
+					.append("tn120", 1)
+					.append("tn123", 1)
+					.append("tn127", 1)
+					.append("tn130", 1)
+					.append("tn131", 1)
+					.append("tn133", 1)
+					.append("tn134", 1)
+					.append("tn135", 1)
+					);
+			
 		}
 		if(topicTour != null) {
-			query.append("pt550", topicTour);
+			match.append("pt550", topicTour);
 		}
-		Iterator<Document> iterator = mongoCollection.find(query).skip(skip).limit(limit).iterator();
+		Bson matchs = new BasicDBObject("$match",match);
+		Bson limits = new BasicDBObject("$limit",limit);
+		Bson skips = new BasicDBObject("$skip",skip);
+		List<Bson> query = new ArrayList<>();
+		query.add(matchs);
+		if(project !=null) {
+			query.add(project);
+		}
+		query.add(limits);
+		query.add(skips);
+		Iterator<Document> iterator = mongoCollection.aggregate(query).iterator();
 		List<Map<String,T>> listMap = new ArrayList<>();
 		Map<String,T> mapper = null;
 		while(iterator.hasNext()) {
